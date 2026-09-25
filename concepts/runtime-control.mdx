@@ -10,11 +10,11 @@ Rewire supports runtime control over a loopback gRPC service, so you can start n
 
 When `rewire record` starts, it hosts a gRPC control service on an OS-assigned port on `127.0.0.1` and registers itself by writing a small per-process file to the runtime directory:
 
-```
+```text
 rewire-<pid>.json
 ```
 
-CLI commands such as `rewire log` and `rewire topics` read that registry to discover the live bridge and dial its gRPC endpoint. Because the file is keyed by PID, multiple bridges can run on the same machine simultaneously — each one registers independently.
+CLI commands such as `rewire log` and `rewire status` read that registry to discover the live bridge and dial its gRPC endpoint. Because the file is keyed by PID, multiple bridges can run on the same machine simultaneously — each one registers independently.
 
 <Note>
   Earlier versions of Rewire used a Unix domain socket for IPC. As of v0.4.0,

@@ -1,10 +1,10 @@
 ---
-title: "Quick Start: Stream ROS 2 Topics to Rerun"
+title: "Quick Start: Seven Ways to Stream ROS 2 with Rewire"
 sidebarTitle: "Quick Start"
-description: "Stream your first ROS 2 topics to Rerun in under a minute. Subscribe to specific topics, save recordings, and stream to a remote viewer."
+description: "Stream ROS 2 topics to Rerun in under a minute. Filter by topic, save recordings, relay to a remote viewer, or run diagnostics — all with rewire record."
 ---
 
-With a ROS 2 system running, pick the workflow that matches what you want to do. Every workflow starts with `rewire record` — the flags you add determine what gets subscribed, where the data goes, and whether anything is saved.
+With a ROS 2 system running, pick the workflow that matches what you want to do. Every workflow starts with `rewire record` — the flags you add determine which topics are subscribed, where the data goes, and whether anything is saved to disk.
 
 <Tabs>
   <Tab title="All topics">
@@ -64,7 +64,7 @@ With a ROS 2 system running, pick the workflow that matches what you want to do.
     rewire record --save recording --no-live
     ```
 
-    You can also combine `--save` with `--connect` to point the live half at a specific address while the local archive keeps writing, even if the relay or viewer restarts.
+    Combine `--save` with `--connect` to point the live half at a specific address while the local archive keeps writing, even if the relay or viewer restarts.
   </Tab>
   <Tab title="Headless relay">
     Run a standalone relay as a long-lived hub, then point bridges and viewers at it:

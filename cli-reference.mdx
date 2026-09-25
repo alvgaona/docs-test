@@ -1,7 +1,7 @@
 ---
-title: "Rewire CLI Reference: All Commands and Flags"
+title: "Rewire CLI Reference: Subcommands, Flags, Arguments"
 sidebarTitle: "CLI Reference"
-description: "Complete reference for every rewire subcommand, flag, and argument — from streaming with record to environment checks with doctor."
+description: "Every rewire subcommand documented — record, play, serve, doctor, config, upgrade, and more — with all flags, defaults, and usage notes."
 ---
 
 The `rewire` CLI exposes all bridge functionality through a set of focused subcommands. Most accept a `--config` flag pointing to a JSON5 config file; if you omit it, Rewire reads `~/.config/rewire/config.json5` automatically. Verbosity is per-subcommand rather than global — `record`, `play`, and `serve` accept `--log-level`, which outranks the `RUST_LOG` environment variable, which in turn outranks the `log_level` config key. All other subcommands fall back to the environment variable and the config key only.

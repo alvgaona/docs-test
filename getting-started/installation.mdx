@@ -1,7 +1,7 @@
 ---
-title: "Install Rewire on macOS or Linux"
+title: "Install Rewire: Script, pixi, APT, and Nix Methods"
 sidebarTitle: "Installation"
-description: "Install the Rewire bridge and viewer on macOS (Apple Silicon) or Linux (x86_64, aarch64) in seconds using the install script, pixi, APT, or Nix."
+description: "Install the Rewire bridge and viewer on macOS (Apple Silicon) or Linux (x86_64, aarch64) using the install script, pixi, APT, or Nix."
 ---
 
 Pick the installation method that best fits your setup. Every method delivers the same two binaries: `rewire` (the bridge) and `rewire-viewer` (the custom Rerun-based viewer).
@@ -83,12 +83,14 @@ Pick the installation method that best fits your setup. Every method delivers th
     ```
 
     <Note>
-      The flake repacks the published release archives rather than building from source, so it installs the same binaries every other method does.
+      The flake repacks the published release archives rather than building from source, so it installs the same binaries every other method does. Covered platforms: `aarch64-linux`, `x86_64-linux`, and `aarch64-darwin`.
     </Note>
   </Tab>
 </Tabs>
 
 ## Supported platforms
+
+The following OS and architecture combinations are supported:
 
 | OS | Architecture |
 |---|---|
@@ -108,6 +110,8 @@ rewire --version
 ```
 
 ## Updating
+
+Each install method has its own upgrade path. Rewire also checks for new versions in the background and notifies you when an update is available.
 
 <Tabs>
   <Tab title="Install script">
@@ -158,7 +162,7 @@ rewire --version
 </Tabs>
 
 <Tip>
-  Rewire checks for new versions in the background and notifies you when an update is available. In-place upgrades via `rewire upgrade` only work for installs made by the install script.
+  In-place upgrades via `rewire upgrade` only work for installs made by the install script. If Rewire was installed by pixi, APT, or Nix, use the method-specific command above.
 </Tip>
 
 ## Uninstalling

@@ -1,7 +1,7 @@
 ---
-title: "First Run: What to Expect from Rewire"
+title: "First Run: Rewire Startup Sequence and Environment Setup"
 sidebarTitle: "First Run"
-description: "What Rewire does the first time you run it: relay startup, topic discovery, streaming, plus environment checks and shell completions."
+description: "What Rewire does on first run — relay startup, topic discovery, and live streaming — plus environment checks with rewire doctor and shell completions."
 ---
 
 When you run `rewire record` for the first time, Rewire performs a short startup sequence before data starts flowing. Understanding what happens at each stage helps you diagnose any issues and configure your environment correctly.
@@ -35,7 +35,7 @@ Before your first real run, verify that your environment is configured correctly
 rewire doctor
 ```
 
-`rewire doctor` checks for middleware availability, network configuration, and converter readiness. If anything looks wrong — such as a missing DDS implementation or a misconfigured network interface — the output tells you what to fix.
+`rewire doctor` checks for middleware availability, network configuration, and converter readiness. If anything looks wrong — such as a missing DDS implementation or a misconfigured network interface — the output tells you exactly what to fix.
 
 ## Shell completions
 

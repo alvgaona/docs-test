@@ -1,7 +1,7 @@
 ---
-title: "Rewire: ROS 2 to Rerun Bridge in Seconds"
+title: "Rewire: Drop-In ROS 2 Bridge for Rerun Visualization"
 sidebarTitle: "Introduction"
-description: "Rewire is a drop-in ROS 2 bridge for Rerun. Stream live topics to the viewer in seconds — one binary, no ROS 2 install required."
+description: "Rewire is a single Rust binary that connects to your ROS 2 network via DDS and Zenoh, discovers topics automatically, and streams them to Rerun."
 ---
 
 Rewire connects to your ROS 2 network via DDS and Zenoh, discovers topics automatically, and streams them to [Rerun](https://rerun.io) for real-time visualization. It's a single Rust binary — no `rclcpp`, no `setup.bash`, no colcon workspaces. The bundled Rewire Viewer extends the official Rerun viewer with ROS 2-specific panels (Topics, Nodes, Diagnostics), though Rewire streams equally well to any Rerun viewer you already have running.
@@ -41,16 +41,19 @@ The install script places both `rewire` (the bridge) and `rewire-viewer` in `~/.
 ## Where to next?
 
 <CardGroup cols={2}>
-  <Card title="Installation" icon="download" href="getting-started/installation">
+  <Card title="Installation" icon="download" href="/getting-started/installation">
     Install Rewire on macOS or Linux using the script, pixi, APT, or Nix.
   </Card>
-  <Card title="Quick Start" icon="bolt" href="getting-started/quick-start">
+  <Card title="Quick Start" icon="bolt" href="/getting-started/quick-start">
     Subscribe to specific topics, save recordings, stream to a remote viewer, and enable diagnostics.
   </Card>
-  <Card title="Architecture" icon="diagram-project" href="concepts/architecture">
+  <Card title="First Run" icon="play" href="/getting-started/first-run">
+    What Rewire does the first time you run it, plus environment checks and shell completions.
+  </Card>
+  <Card title="Architecture" icon="diagram-project" href="/concepts/architecture">
     Learn why Rewire isn't a ROS 2 node and how it observes the network passively via DDS and Zenoh.
   </Card>
-  <Card title="Custom Mappings" icon="sliders" href="custom-mappings/overview">
+  <Card title="Custom Mappings" icon="sliders" href="/custom-mappings/overview">
     Map any ROS 2 type to Rerun archetypes via JSON5 config — no code required.
   </Card>
 </CardGroup>

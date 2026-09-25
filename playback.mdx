@@ -1,7 +1,7 @@
 ---
-title: "Bag Playback: Stream or Convert MCAP Files"
+title: "Bag Playback: Stream MCAP Files or Convert Them to RRD"
 sidebarTitle: "Playback"
-description: "Stream a recorded MCAP bag to the Rewire viewer at adjustable speed, or convert it to an RRD file offline — no ROS 2 install or sourced workspace required."
+description: "Stream a recorded MCAP bag to the Rewire viewer at adjustable speed, or convert it to RRD offline — no ROS 2 install or sourced workspace required."
 ---
 
 The `rewire play` command reads a recorded MCAP bag and runs it through the same converters as the live bridge. Bags carry their own message definitions, so playback needs no ROS 2 installation, no sourced workspace, and no DDS traffic on the network.
@@ -64,7 +64,7 @@ An empty `--topics` selection plays every topic in the bag. Throttles are applie
 | Flag | Short | Description | Default |
 |---|---|---|---|
 | `<INPUT>` | — | Path to the MCAP bag file | — |
-| `--save <PATH>` | `-o` | Convert to this RRD file instead of streaming | — |
+| `--save <PATH>` | `-o`, `--output` | Convert to this RRD file instead of streaming | — |
 | `--connect <ADDRESS>` | — | Stream to a running relay or Rerun viewer | — |
 | `--rate <RATE>` | — | Playback rate multiplier (streaming mode only) | `1.0` |
 | `--flush-tick-ms <MS>` | — | How often the live stream is flushed to the viewer, in milliseconds (streaming mode only) | `8` |

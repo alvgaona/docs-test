@@ -1,5 +1,5 @@
 ---
-title: "Entity Mapping: ROS 2 Topics to Rerun Entities"
+title: "Entity Mapping: How ROS 2 Topics Become Rerun Entities"
 sidebarTitle: "Entity Mapping"
 description: "Understand how Rewire maps ROS 2 topics to Rerun entity paths, including multi-entity types, grouped scalar series, and TF tree integration."
 ---
@@ -22,7 +22,7 @@ This one-to-one mapping means that what you see in `ros2 topic list` maps direct
 
 Some message types produce more than one Rerun entity. Rewire logs the additional entities as children of the topic's entity path. For example, a `/odom` topic carrying `nav_msgs/Odometry` messages produces:
 
-```
+```text
 /odom                 -> InstancePoses3D (pose)
 /odom/position        -> Scalars (x, y, z)
 /odom/orientation     -> Scalars (x, y, z, w)
@@ -53,7 +53,7 @@ The `BatteryState` converter is the exception: its fields mix units (V, A, Ah, %
 
 Messages of type `visualization_msgs/Marker` use a namespace-and-ID scheme. A marker published on `/visualization_marker` with namespace `obstacles` and ID `3` produces:
 
-```
+```text
 /visualization_marker/obstacles/3  -> Boxes3D, Arrows3D, etc.
 ```
 

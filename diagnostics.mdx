@@ -1,5 +1,5 @@
 ---
-title: "Diagnostics: Per-Topic Hz, Bandwidth, and Latency"
+title: "Diagnostics: Monitor Per-Topic Hz, Bandwidth, and Latency"
 sidebarTitle: "Diagnostics"
 description: "Enable per-topic diagnostics to monitor message rate, bandwidth, drops, and latency as Rerun Scalar time series alongside your live ROS 2 data."
 ---
@@ -79,7 +79,7 @@ Latency is the time between a message being published and Rewire receiving it, m
 
 Latency uses an exponential moving average (EMA) with a smoothing factor of `0.1`:
 
-```
+```text
 latency = 0.1 × current + 0.9 × previous
 ```
 

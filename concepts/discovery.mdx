@@ -1,5 +1,5 @@
 ---
-title: "Topic Discovery: How Rewire Finds ROS 2 Topics"
+title: "Topic Discovery: How Rewire Subscribes to ROS 2 Topics"
 sidebarTitle: "Discovery"
 description: "Learn how Rewire automatically discovers, filters, and subscribes to ROS 2 topics — including live discovery, type resolution, and timeout configuration."
 ---
@@ -60,7 +60,7 @@ For **custom** message types, Rewire uses one of two resolution strategies depen
   <Tab title="Strategy 1: Workspace Sourcing">
     When `AMENT_PREFIX_PATH` is set (i.e. you've sourced a ROS 2 workspace), Rewire loads type definitions from `.msg` files on disk at startup. It reads them from:
 
-    ```
+    ```text
     $AMENT_PREFIX_PATH/share/{pkg}/msg/{Type}.msg
     ```
 

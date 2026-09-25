@@ -1,5 +1,5 @@
 ---
-title: "Configure Rewire with a JSON5 Config File"
+title: "Rewire JSON5 Config File — Complete Fields Reference"
 sidebarTitle: "JSON5 Config"
 description: "Set Rewire's app ID, transports, topic filters, output targets, and more with a single JSON5 file. All fields are optional — CLI flags always win."
 ---
@@ -12,7 +12,7 @@ Rewire loads its configuration from a JSON5 file at startup. Every field is opti
   <Tab title="Default path">
     Rewire looks for your config file at the following location automatically — no flag needed:
 
-    ```
+    ```text
     ~/.config/rewire/config.json5
     ```
   </Tab>
@@ -34,6 +34,7 @@ The block below shows every supported field. All are optional — include only w
     app_id: "my-robot",
     transport: "all",
     domain_id: 42,
+    discovery_timeout: 5,
     queue_depth: 16,
     log_level: "rewire=debug",
     diagnostics: true,
