@@ -1,0 +1,84 @@
+---
+title: "First Run: What to Expect from Rewire"
+sidebarTitle: "First Run"
+description: "What Rewire does the first time you run it: relay startup, topic discovery, streaming, plus environment checks and shell completions."
+---
+
+When you run `rewire record` for the first time, Rewire performs a short startup sequence before data starts flowing. Understanding what happens at each stage helps you diagnose any issues and configure your environment correctly.
+
+## What happens
+
+<Steps>
+  <Step title="Start the relay and launch the viewer">
+    Rewire starts an in-process relay on port `9876` and spawns the Rewire Viewer next to the bridge process, connected through the relay. Because the viewer connects through the relay rather than directly to the bridge, it can restart without interrupting the recording.
+  </Step>
+  <Step title="Discover the network">
+    Rewire creates a DDS and Zenoh context to discover topics on the network and waits for topic discovery to settle (default: 5 seconds). No data is subscribed yet — this pause ensures topics announced shortly after startup are not missed.
+  </Step>
+  <Step title="Subscribe and stream">
+    Matching topics are subscribed automatically and data starts flowing to the viewer in real time. Every matched topic gets a converter that maps the ROS 2 message type to the appropriate Rerun archetype.
+  </Step>
+  <Step title="Track changes">
+    New topics are picked up as they appear on the network, and Rewire unsubscribes cleanly when topics go away. The viewer reflects these changes live without requiring a restart.
+  </Step>
+</Steps>
+
+<Note>
+  Rewire is not a ROS 2 node — it observes the DDS/Zenoh network directly and never interferes with your ROS graph. No `setup.bash`, no `rclcpp`, no colcon workspace required.
+</Note>
+
+## Environment check
+
+Before your first real run, verify that your environment is configured correctly:
+
+```bash
+rewire doctor
+```
+
+`rewire doctor` checks for middleware availability, network configuration, and converter readiness. If anything looks wrong — such as a missing DDS implementation or a misconfigured network interface — the output tells you what to fix.
+
+## Shell completions
+
+Generate completions for your shell so you can tab-complete `rewire` subcommands and flags:
+
+<Tabs>
+  <Tab title="bash">
+    ```bash
+    rewire completions bash > ~/.bash_completion.d/rewire
+    ```
+
+    Reload your shell or source the file to activate completions immediately:
+
+    ```bash
+    source ~/.bash_completion.d/rewire
+    ```
+  </Tab>
+  <Tab title="zsh">
+    ```bash
+    rewire completions zsh > ~/.zfunc/_rewire
+    ```
+
+    Make sure `~/.zfunc` is on your `fpath` (add `fpath=(~/.zfunc $fpath)` to your `.zshrc` if it is not), then reload:
+
+    ```bash
+    autoload -Uz compinit && compinit
+    ```
+  </Tab>
+  <Tab title="fish">
+    ```bash
+    rewire completions fish > ~/.config/fish/completions/rewire.fish
+    ```
+
+    Fish picks up completions from that directory automatically — no extra step needed.
+  </Tab>
+</Tabs>
+
+## List supported types
+
+See every built-in ROS 2 message type and its corresponding Rerun archetype:
+
+```bash
+rewire types
+```
+
+This shows every supported type mapping out of the box. If a type you need is missing, you can add a custom mapping via a JSON5 config file — see [Custom Mappings](/custom-mappings/overview) for details.

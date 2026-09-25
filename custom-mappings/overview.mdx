@@ -1,0 +1,79 @@
+---
+title: "Custom Mappings Overview — Map Any ROS 2 Message"
+sidebarTitle: "Overview"
+description: "Map any ROS 2 message type to Rerun archetypes via a JSON5 config file. Visualize custom messages without writing a single line of code."
+---
+
+Custom message mappings let you visualize any ROS 2 message type in Rerun without writing code. You define a JSON5 file that maps message fields to Rerun archetypes, and Rewire handles the rest — no plugins, no rebuilds, no ROS 2 install required.
+
+## Usage
+
+Pass your mappings file to `rewire record` with the `--mappings` flag:
+
+```bash
+rewire record --mappings mappings.json5
+```
+
+## Generating a Template
+
+Use `rewire mappings generate` to scaffold a mappings file from the types currently discoverable on the network. Rewire inspects each topic, resolves custom message schemas, and writes a JSON5 template you can edit.
+
+```bash
+rewire mappings generate --output mappings.json5
+```
+
+<Tip>
+  Run `rewire mappings generate` while your robot or simulator is running so that Rewire can discover all active topics and generate entries for every custom type on the network.
+</Tip>
+
+## Basic Example
+
+The following mapping targets a `my_robot/MotorStatus` message and routes three of its fields to Rerun archetypes:
+
+```json5
+[
+  {
+    type: "my_robot/MotorStatus",
+    entity: "motor",
+    fields: {
+      temperature: { archetype: "Scalars" },
+      rpm: { archetype: "Scalars" },
+      status_text: { archetype: "TextLog" },
+    }
+  },
+]
+```
+
+This mapping does the following:
+
+- `temperature` is logged as a `Scalars` entity (numeric time series)
+- `rpm` is logged as a `Scalars` entity (numeric time series)
+- `status_text` is logged as a `TextLog` entity (log entry with severity)
+
+## Mapping Entry Structure
+
+Each object in the top-level mappings array accepts the following fields:
+
+| Field | Required | Description |
+| --- | --- | --- |
+| `type` | Yes | Full ROS 2 message type (e.g., `my_robot/MotorStatus`) |
+| `entity` | No | Custom Rerun entity path prefix |
+| `fields` | Yes | Map of field name to archetype mapping |
+
+## Field Mapping Types
+
+Fields can be mapped in four ways:
+
+1. **Leaf** — Map a single value to a simple archetype (`Scalars`, `TextLog`, `TextDocument`). Use this for individual numeric or string fields.
+2. **Composite** — Map multiple sub-fields together onto a single complex archetype (`Points3D`, `Boxes2D`, etc.). Use this when a Rerun archetype requires more than one coordinate or attribute.
+3. **Expansion** — Iterate over an array field with `each` and log each element individually. Use this for arrays of detections, waypoints, or any repeated sub-message.
+4. **Nested** — Recurse into a sub-message with a `fields` key and apply further mappings to its children. Use this to reach deeply nested fields without flattening your message type.
+
+<CardGroup cols={2}>
+  <Card title="Archetypes" href="/custom-mappings/archetypes">
+    Full list of supported Rerun archetypes and their required fields.
+  </Card>
+  <Card title="Examples" href="/custom-mappings/examples">
+    Real-world mapping patterns for common robotics message types.
+  </Card>
+</CardGroup>

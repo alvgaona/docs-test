@@ -1,0 +1,94 @@
+---
+title: "Quick Start: Stream ROS 2 Topics to Rerun"
+sidebarTitle: "Quick Start"
+description: "Stream your first ROS 2 topics to Rerun in under a minute. Subscribe to specific topics, save recordings, and stream to a remote viewer."
+---
+
+With a ROS 2 system running, pick the workflow that matches what you want to do. Every workflow starts with `rewire record` — the flags you add determine what gets subscribed, where the data goes, and whether anything is saved.
+
+<Tabs>
+  <Tab title="All topics">
+    Stream every discovered topic and launch the Rewire Viewer:
+
+    ```bash
+    rewire record
+    ```
+
+    Rewire discovers all topics on your DDS/Zenoh network, subscribes to them automatically, and opens the viewer. New topics that appear after startup are picked up live.
+  </Tab>
+  <Tab title="Specific topics">
+    Only subscribe to a curated list of topics:
+
+    ```bash
+    rewire record --topics /camera/image /scan /tf
+    ```
+
+    Pass as many topic names as you need. Only the listed topics are subscribed; everything else is ignored.
+  </Tab>
+  <Tab title="Exclude topics">
+    Subscribe to everything except topics matching the given glob patterns:
+
+    ```bash
+    rewire record --exclude "/diagnostics/*" "/rosout" "/parameter_events"
+    ```
+
+    This is useful for high-volume or noisy topics you want to filter out while keeping all other data flowing.
+  </Tab>
+  <Tab title="Remote viewer">
+    Connect to a Rerun viewer running on another machine:
+
+    ```bash
+    rewire record --connect 192.168.1.100:9876
+    ```
+
+    Rewire streams data to the remote address instead of launching a local viewer. Use this to visualize robot data on a separate workstation or to feed a shared relay hub.
+  </Tab>
+  <Tab title="Save to file">
+    Save the session to an `.rrd` file for later playback:
+
+    ```bash
+    rewire record --save recording
+    ```
+
+    The `--save` flag takes a filename stem. Rewire appends the recording ID to produce a unique filename — the example above writes `recording_<recording_id>.rrd`.
+
+    Use `--save-session` instead to append every recording of the run to a single file:
+
+    ```bash
+    rewire record --save-session my_session.rrd
+    ```
+
+    A save run also streams live, so the viewer opens and you can watch what you are capturing. Add `--no-live` to write only the file with no viewer and no relay — useful for headless measurement runs:
+
+    ```bash
+    rewire record --save recording --no-live
+    ```
+
+    You can also combine `--save` with `--connect` to point the live half at a specific address while the local archive keeps writing, even if the relay or viewer restarts.
+  </Tab>
+  <Tab title="Headless relay">
+    Run a standalone relay as a long-lived hub, then point bridges and viewers at it:
+
+    ```bash
+    # Start the hub (e.g. on a robot or lab server)
+    rewire serve
+
+    # Stream to it from anywhere on the network
+    rewire record --connect relay-host:9876
+
+    # Check who's connected
+    rewire status --connect relay-host
+    ```
+
+    The relay decouples your bridge processes from your viewers. Viewers can restart without interrupting recording, and multiple bridges can fan in to a single hub.
+  </Tab>
+  <Tab title="Diagnostics">
+    Monitor per-topic Hz, bandwidth, drops, and latency alongside your live data:
+
+    ```bash
+    rewire record --diagnostics
+    ```
+
+    Diagnostics are logged as Rerun `Scalars` entities under `/rewire/bridge/topics/{topic_name}/`, so you can plot them alongside the rest of your data in the timeline.
+  </Tab>
+</Tabs>

@@ -1,0 +1,72 @@
+---
+title: "Entity Mapping: ROS 2 Topics to Rerun Entities"
+sidebarTitle: "Entity Mapping"
+description: "Understand how Rewire maps ROS 2 topics to Rerun entity paths, including multi-entity types, grouped scalar series, and TF tree integration."
+---
+
+When Rewire receives a ROS 2 message, it converts it to one or more Rerun entities. Understanding this mapping helps you navigate the viewer, build blueprints, and write custom mappings for your own message types.
+
+## Topic to Entity Path
+
+ROS 2 topic names map directly to Rerun entity paths. The topic name becomes the entity path, and namespaced topics naturally create a hierarchy in the Rerun viewer's entity tree.
+
+| ROS 2 topic | Rerun entity path |
+| --- | --- |
+| `/camera/image` | `/camera/image` |
+| `/odom` | `/odom` |
+| `/robot/joint_states` | `/robot/joint_states` |
+
+This one-to-one mapping means that what you see in `ros2 topic list` maps directly to what you see in the entity tree — no renaming or indirection to track.
+
+## One Topic, Multiple Entities
+
+Some message types produce more than one Rerun entity. Rewire logs the additional entities as children of the topic's entity path. For example, a `/odom` topic carrying `nav_msgs/Odometry` messages produces:
+
+```
+/odom                 -> InstancePoses3D (pose)
+/odom/position        -> Scalars (x, y, z)
+/odom/orientation     -> Scalars (x, y, z, w)
+/odom/twist/linear    -> Scalars (x, y, z)
+/odom/twist/angular   -> Scalars (x, y, z)
+```
+
+Other common examples of multi-entity message types:
+
+- **`sensor_msgs/Imu`** — logs `Arrows3D` (acceleration and angular velocity vectors) and `Scalars` (orientation, angular velocity, linear acceleration, and their covariance diagonals)
+- **`geometry_msgs/PoseWithCovarianceStamped`** — logs `InstancePoses3D` (pose) and `Ellipsoids3D` (covariance)
+
+## Grouped Scalar Series
+
+A vector-valued signal logs as **one** entity carrying its components as named series, not one entity per axis. The three components of `/odom/position` share a single plot, colored by axis, and the legend names them `x`, `y`, and `z`.
+
+To inspect a single axis, click a series name in the plot legend to toggle it, or Alt-click to solo it. The choice is stored in the blueprint and survives across sessions.
+
+<Note>
+  Before v0.7.0, each axis had its own entity (for example `/odom/position/x`).
+  If you have blueprints that reference per-axis paths, update them to the
+  grouped path (for example `/odom/position`).
+</Note>
+
+The `BatteryState` converter is the exception: its fields mix units (V, A, Ah, %, °C) that would collide on a shared y-axis, so each field keeps its own entity. Custom JSON5 mappings also keep whichever paths you define.
+
+### Marker Namespace and ID Scheme
+
+Messages of type `visualization_msgs/Marker` use a namespace-and-ID scheme. A marker published on `/visualization_marker` with namespace `obstacles` and ID `3` produces:
+
+```
+/visualization_marker/obstacles/3  -> Boxes3D, Arrows3D, etc.
+```
+
+The marker type determines which Rerun archetype is logged at that path.
+
+## TF Tree Integration
+
+Entities that carry a `Header` with a `frame_id` are automatically placed in the TF tree. The Rerun viewer uses this information to render data in the correct coordinate frame.
+
+For example, a `sensor_msgs/PointCloud2` on `/lidar/points` with `frame_id: "lidar_link"` appears attached to the `lidar_link` frame in 3D space and moves with the robot as TF updates arrive.
+
+## Custom Mappings
+
+When the built-in type mappings don't cover your message type, you can define custom mappings in a JSON5 config file. Custom mappings follow the same entity path convention — the topic name becomes the entity path, and you define which fields map to which Rerun archetype components.
+
+See [Custom Mappings](/custom-mappings/overview) for details.

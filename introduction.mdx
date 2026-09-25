@@ -1,0 +1,56 @@
+---
+title: "Rewire: ROS 2 to Rerun Bridge in Seconds"
+sidebarTitle: "Introduction"
+description: "Rewire is a drop-in ROS 2 bridge for Rerun. Stream live topics to the viewer in seconds — one binary, no ROS 2 install required."
+---
+
+Rewire connects to your ROS 2 network via DDS and Zenoh, discovers topics automatically, and streams them to [Rerun](https://rerun.io) for real-time visualization. It's a single Rust binary — no `rclcpp`, no `setup.bash`, no colcon workspaces. The bundled Rewire Viewer extends the official Rerun viewer with ROS 2-specific panels (Topics, Nodes, Diagnostics), though Rewire streams equally well to any Rerun viewer you already have running.
+
+## From zero to viewer in two commands
+
+Install Rewire with the one-line install script, then start streaming:
+
+```bash
+curl -fsSL https://rewire.run/install.sh | sh
+rewire record
+```
+
+The install script places both `rewire` (the bridge) and `rewire-viewer` in `~/.local/bin`. Once installed, `rewire record` launches the Rewire Viewer and begins receiving every topic discovered on your network. To stream into a viewer running on another machine, pass `--connect host:9876` instead.
+
+<Note>
+  The one exception to the no-ROS-install rule is URDF mesh resolution. If you visualize a robot model with `package://` mesh URIs, source your ROS 2 environment so `AMENT_PREFIX_PATH` is set before running Rewire.
+</Note>
+
+## Key features
+
+<CardGroup cols={2}>
+  <Card title="Zero ROS 2 install" icon="box">
+    Rewire is a standalone Rust binary. It observes DDS and Zenoh traffic passively — it is never a ROS 2 node and never interferes with your ROS graph.
+  </Card>
+  <Card title="Automatic topic discovery" icon="radar">
+    Topics are discovered and subscribed automatically as they appear. New topics are picked up live, and Rewire unsubscribes cleanly when topics go away.
+  </Card>
+  <Card title="Flexible install methods" icon="wrench">
+    Choose from an install script, pixi, APT (Debian/Ubuntu), or Nix. All methods deliver the same binaries for macOS (Apple Silicon) and Linux (x86_64, aarch64).
+  </Card>
+  <Card title="Built-in type mappings" icon="map">
+    Common ROS 2 message types map to Rerun archetypes out of the box. Extend or override any mapping via a JSON5 config file — no code required.
+  </Card>
+</CardGroup>
+
+## Where to next?
+
+<CardGroup cols={2}>
+  <Card title="Installation" icon="download" href="getting-started/installation">
+    Install Rewire on macOS or Linux using the script, pixi, APT, or Nix.
+  </Card>
+  <Card title="Quick Start" icon="bolt" href="getting-started/quick-start">
+    Subscribe to specific topics, save recordings, stream to a remote viewer, and enable diagnostics.
+  </Card>
+  <Card title="Architecture" icon="diagram-project" href="concepts/architecture">
+    Learn why Rewire isn't a ROS 2 node and how it observes the network passively via DDS and Zenoh.
+  </Card>
+  <Card title="Custom Mappings" icon="sliders" href="custom-mappings/overview">
+    Map any ROS 2 type to Rerun archetypes via JSON5 config — no code required.
+  </Card>
+</CardGroup>

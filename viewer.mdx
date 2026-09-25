@@ -1,0 +1,116 @@
+---
+title: "Rewire Viewer: Custom ROS 2 Visualization Panels"
+sidebarTitle: "Viewer"
+description: "Rewire ships a custom Rerun-based viewer with Topics, Nodes, and Diagnostics panels built for ROS 2. It launches automatically when you run rewire record."
+---
+
+Rewire ships its own viewer — a custom build of Rerun with panels designed specifically for ROS 2 development. It launches automatically when you run `rewire record`, so you get live visualization with no extra configuration steps.
+
+## Auto-spawn
+
+When you run `rewire record` without a `--connect` flag, Rewire starts an in-process [relay](./relay), looks for the `rewire-viewer` binary next to its own executable or on your `PATH`, and launches it connected through the relay.
+
+```bash
+rewire record
+```
+
+The viewer opens and starts receiving data immediately. Because the viewer connects through the relay, you can close and reopen it — or it can crash — without interrupting the recording. When the bridge shuts down, the viewer stays open so you can continue inspecting the data.
+
+<Note>
+  If the default port is already in use, Rewire probes what is listening and
+  connects to it instead — first a running relay, then a legacy 0.5.x
+  `rewire-viewer`, and finally a stock Rerun viewer. If `rewire-viewer` is not
+  found (for example, a manual install of only the `rewire` binary), Rewire
+  falls back to the official Rerun viewer automatically.
+</Note>
+
+## Custom Panels
+
+The Rewire Viewer adds three panels on top of the standard Rerun interface, each purpose-built for ROS 2 workflows.
+
+### Topics
+
+A sortable table of all subscribed topics, updated in real time as topics are discovered, subscribed, or unsubscribed. Each row shows:
+
+- **Topic name** and **message type**
+- **Publisher** and **subscriber** counts
+
+Use this panel to confirm that Rewire has discovered the topics you expect and to track the lifecycle of topic subscriptions during a session.
+
+### Nodes
+
+Discovered ROS 2 nodes that publish or subscribe to actively bridged topics. Each entry shows:
+
+- **Node name**
+- **Publisher and subscriber counts**
+- **Transport protocol** — DDS or Zenoh
+
+The Nodes panel gives you a live picture of which processes are active on the network and how they relate to the topics being bridged.
+
+### Diagnostics
+
+Per-topic diagnostics at a glance, without needing to open a separate time-series plot:
+
+- **Hz** — actual versus expected message rate
+- **Bandwidth** — bytes per second for the topic
+- **Dropped messages** — cumulative drop count
+- **Latency** — exponential moving average round-trip latency
+
+This panel complements the per-topic diagnostic time series that Rewire logs as Rerun `Scalars` when `--diagnostics` is enabled. See [Diagnostics](./diagnostics) for details on enabling and interpreting those metrics.
+
+## Using a Remote Viewer
+
+To stream data to a viewer running on another machine, pass `--connect` with the target address:
+
+```bash
+rewire record --connect 192.168.1.50:9876
+```
+
+Rewire accepts several shorthand forms and resolves them to a full gRPC address:
+
+| Input | Resolved to |
+|---|---|
+| `192.168.1.50:9876` | `rerun+http://192.168.1.50:9876/proxy` |
+| `192.168.1.50` | `rerun+http://192.168.1.50:9876/proxy` |
+| `localhost` | `rerun+http://127.0.0.1:9876/proxy` |
+
+When `--connect` is specified, Rewire does not auto-spawn a local viewer.
+
+## Multi-Bridge Fleet Visualization
+
+Multiple bridge instances can stream to the same viewer simultaneously. Each bridge reports a unique heartbeat, and the viewer tracks connection status and bridge count automatically.
+
+```bash
+# Robot 1
+rewire record --connect viewer-host:9876
+
+# Robot 2 (different machine, same viewer)
+rewire record --connect viewer-host:9876
+```
+
+The Topics and Nodes panels aggregate data from all connected bridges, giving you a unified view of the entire fleet.
+
+<Tip>
+  For fleets, run a standalone [relay](./relay) as the central hub instead of
+  pointing bridges directly at a viewer. Bridges reconnect to the relay
+  automatically, and viewers can come and go without disturbing the streams.
+</Tip>
+
+## Ports
+
+In the default flow, the embedded relay hosts both the Rerun data stream and the Rewire service (heartbeats, info) on a single port — `9876` — and the viewer connects to it as a client.
+
+When the viewer runs standalone in the 0.5.x style — receiving streams directly, without a relay — it uses two separate ports:
+
+| Port | Protocol | Purpose |
+|---|---|---|
+| `9876` | gRPC | Rerun data stream |
+| `9877` | gRPC | Viewer service (heartbeat, info) |
+
+Both ports are configurable via the `rewire-viewer` CLI:
+
+```bash
+rewire-viewer --port 9876 --grpc-port 9877
+```
+
+The service port defaults to the data port plus one when not specified.

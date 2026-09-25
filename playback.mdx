@@ -1,0 +1,87 @@
+---
+title: "Bag Playback: Stream or Convert MCAP Files"
+sidebarTitle: "Playback"
+description: "Stream a recorded MCAP bag to the Rewire viewer at adjustable speed, or convert it to an RRD file offline — no ROS 2 install or sourced workspace required."
+---
+
+The `rewire play` command reads a recorded MCAP bag and runs it through the same converters as the live bridge. Bags carry their own message definitions, so playback needs no ROS 2 installation, no sourced workspace, and no DDS traffic on the network.
+
+<Tabs>
+  <Tab title="Stream to Viewer">
+    Stream the bag live to the bundled viewer, paced by the bag's recorded timestamps:
+
+    ```bash
+    rewire play flight.mcap
+    ```
+
+    This starts the bundled viewer the same way `rewire record` does, then replays the bag at the pace it was recorded. Use `--rate` to change playback speed:
+
+    ```bash
+    rewire play flight.mcap --rate 4      # four times faster
+    rewire play flight.mcap --rate 0.25   # quarter speed
+    ```
+
+    To stream to a viewer or relay that is already running, point at it with `--connect`:
+
+    ```bash
+    rewire play flight.mcap --connect 192.168.1.50:9876
+    ```
+
+    When `--connect` is specified, Rewire does not auto-spawn a local viewer.
+  </Tab>
+  <Tab title="Convert to RRD">
+    Convert the bag to a standalone `.rrd` file as fast as the CPU allows:
+
+    ```bash
+    rewire play flight.mcap -o flight.rrd
+    ```
+
+    Conversion ignores log-time pacing — there is no viewer to feed, so Rewire processes the bag at full speed and writes exactly the path you name. The result opens in the Rerun viewer like any other `.rrd` file.
+
+    <Note>
+      `--save` and `--connect` are mutually exclusive. Use `-o` (or `--output`,
+      an alias that matches the vocabulary of `rerun mcap convert`) for
+      conversion, and `--connect` for streaming.
+    </Note>
+  </Tab>
+</Tabs>
+
+## Selecting and Shaping the Data
+
+Topic selection, exclusion, throttling, and custom mappings behave exactly as they do on a live `rewire record` run. Pass any combination of filters to control what gets played back:
+
+```bash
+rewire play flight.mcap \
+    --topics "/camera/*" "/odom" \
+    --exclude "/rosout" \
+    --throttle "/tf=100"
+```
+
+An empty `--topics` selection plays every topic in the bag. Throttles are applied in bag time, so the cap above admits at most 100 messages per second of recorded time regardless of the playback rate. See the [Topic Filtering](./configuration/topic-filtering) reference for pattern syntax and throttling rules.
+
+## Flags
+
+| Flag | Short | Description | Default |
+|---|---|---|---|
+| `<INPUT>` | — | Path to the MCAP bag file | — |
+| `--save <PATH>` | `-o` | Convert to this RRD file instead of streaming | — |
+| `--connect <ADDRESS>` | — | Stream to a running relay or Rerun viewer | — |
+| `--rate <RATE>` | — | Playback rate multiplier (streaming mode only) | `1.0` |
+| `--flush-tick-ms <MS>` | — | How often the live stream is flushed to the viewer, in milliseconds (streaming mode only) | `8` |
+| `--scalar-flush-tick-ms <MS>` | — | Hold plot-class chunks this long and forward them merged into one chunk per entity; `0` disables (streaming mode only) | `150` |
+| `--live-queue-mib <MIB>` | — | Byte budget for the live stream's never-blocking queue; `0` disables the bound (streaming mode only) | `64` |
+| `--topics <TOPICS>` | `-t` | Play only these topics | _(all topics)_ |
+| `--exclude <EXCLUDE>` | `-e` | Exclude topics by glob pattern | — |
+| `--throttle <TOPIC=HZ>` | — | Cap a topic's rate in bag time (repeatable) | — |
+| `--mappings <PATH>` | — | Load custom message mappings | — |
+| `--config <PATH>` | — | Load JSON5 config file | `~/.config/rewire/config.json5` |
+
+## Message Types
+
+Playback uses the message definitions embedded in the bag, so custom types resolve without sourcing a workspace. Topics whose type has no converter are skipped — exactly as they are on a live bridge.
+
+<Tip>
+  Run `rewire types` to see what message types are mapped. To add support for a
+  custom type, write a [custom mapping](./custom-mappings/overview) and pass it
+  with `--mappings`.
+</Tip>

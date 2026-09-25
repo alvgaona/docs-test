@@ -1,0 +1,111 @@
+---
+title: "Topic Discovery: How Rewire Finds ROS 2 Topics"
+sidebarTitle: "Discovery"
+description: "Learn how Rewire automatically discovers, filters, and subscribes to ROS 2 topics — including live discovery, type resolution, and timeout configuration."
+---
+
+Rewire discovers topics automatically when you run `rewire record`. No manual topic list is required, though you can provide one via include/exclude filters if you want to narrow what gets streamed.
+
+## How Discovery Works
+
+When Rewire starts, it performs discovery on both DDS and Zenoh transports simultaneously. The process runs in three stages:
+
+<Steps>
+  <Step title="Listen">
+    Rewire listens for topic announcements broadcast by nodes on the DDS and Zenoh networks. No polling — announcements are received as they arrive.
+  </Step>
+  <Step title="Match">
+    Each announced topic is matched against your include and exclude filters. Topics that match are queued for subscription; topics that don't match are ignored.
+  </Step>
+  <Step title="Subscribe">
+    Rewire subscribes to matching topics as they are announced and immediately begins streaming data. Recording starts without waiting for the graph to settle, so messages published early in a run are not missed.
+  </Step>
+</Steps>
+
+## Live Discovery
+
+Discovery doesn't stop after startup. Rewire continuously monitors the network for new topics:
+
+- New topics that match your filters are discovered and subscribed to automatically
+- Topics that go away are detected and unsubscribed from
+- No restart is needed when nodes come and go
+
+This is especially useful during development, where you frequently start and stop individual nodes.
+
+## Discovery Timeout
+
+Eager subscription is the default and there is usually no reason to change it. If you'd rather have Rewire wait until the network has announced its topics before starting — for example, to get a complete topic listing on first print — set an explicit timeout:
+
+```bash
+rewire record --discovery-timeout 10
+```
+
+Or in the config file:
+
+```json5
+{
+    discovery_timeout: 10,
+}
+```
+
+Either way, topics that appear after the timeout are still picked up by live discovery.
+
+## Type Resolution
+
+For each discovered topic, Rewire needs to know the message type to deserialize it. The 74 standard ROS 2 message schemas are bundled with Rewire and resolve without any workspace sourcing or `AMENT_PREFIX_PATH` configuration.
+
+For **custom** message types, Rewire uses one of two resolution strategies depending on your environment.
+
+<Tabs>
+  <Tab title="Strategy 1: Workspace Sourcing">
+    When `AMENT_PREFIX_PATH` is set (i.e. you've sourced a ROS 2 workspace), Rewire loads type definitions from `.msg` files on disk at startup. It reads them from:
+
+    ```
+    $AMENT_PREFIX_PATH/share/{pkg}/msg/{Type}.msg
+    ```
+
+    This is the **only** strategy available for pre-Jazzy distributions (Humble, Iron).
+
+    ```bash
+    source /opt/ros/humble/setup.bash
+    source ~/my_ws/install/setup.bash
+    rewire record
+    ```
+
+    You must source **all** workspaces that contain message definitions you need — both the base ROS 2 install and any overlay workspaces with custom messages. If a custom message package lives in a workspace you didn't source, `AMENT_PREFIX_PATH` won't include it and those types will silently fail to deserialize.
+  </Tab>
+  <Tab title="Strategy 2: Service Introspection">
+    When `AMENT_PREFIX_PATH` is **not** set, Rewire automatically attempts to resolve custom types via the `get_type_description` service exposed by Jazzy and later nodes. No workspace sourcing is needed.
+
+    ```bash
+    # No sourcing required — just run the bridge
+    rewire record
+    ```
+
+    Rewire waits up to 10 seconds for type resolution to complete. If a node doesn't expose the `get_type_description` service (for example, a pre-Jazzy node), the type can't be resolved through this path.
+  </Tab>
+</Tabs>
+
+<Warning>
+  The two strategies are **mutually exclusive**. When `AMENT_PREFIX_PATH` is
+  defined, Rewire uses disk-based resolution only and does **not** fall back to
+  service introspection — even if some types are missing from the sourced
+  workspace. Make sure every message package you need is covered before
+  starting Rewire.
+</Warning>
+
+### Which Strategy Does Rewire Use?
+
+| `AMENT_PREFIX_PATH` set? | Node distribution | Resolution method |
+| --- | --- | --- |
+| Yes | Any | `.msg` files on disk only |
+| No | Jazzy+ | `get_type_description` service |
+| No | Pre-Jazzy | Not possible — topic is skipped |
+
+### When Type Resolution Fails
+
+If a topic's type can't be resolved by either strategy, Rewire logs a warning and skips that topic. Common causes and fixes:
+
+- **Unsourced workspace** — a custom message package exists in a workspace you didn't source. Source it and restart Rewire.
+- **Pre-Jazzy without `AMENT_PREFIX_PATH`** — the node doesn't support `get_type_description` and there are no `.msg` files on disk. Source your workspace before running Rewire.
+- **Missing package** — the message package isn't installed at all. Install it into your workspace, then source it.

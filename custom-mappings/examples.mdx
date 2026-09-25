@@ -1,0 +1,127 @@
+---
+title: "Custom Mapping Examples for ROS 2 Message Types"
+sidebarTitle: "Examples"
+description: "Five ready-to-use custom mapping configurations: motor telemetry, 3D detections, nested sensors, bounding boxes, and combining with built-in types."
+---
+
+The examples below show complete, copy-pasteable mappings files for common robotics scenarios. Each example demonstrates a different combination of mapping types — leaf scalars, composite archetypes, array expansion, and nested recursion. Use them as starting points and adapt the `type` and field names to match your own message definitions.
+
+## Motor Telemetry
+
+Log motor status fields as scalar time series and text log entries. This is the most common pattern for numeric diagnostics — every field is a leaf archetype mapped directly to `Scalars` or `TextLog`.
+
+```json5
+[
+  {
+    type: "my_robot/MotorStatus",
+    entity: "motor",
+    fields: {
+      temperature: { archetype: "Scalars" },
+      rpm: { archetype: "Scalars" },
+      current: { archetype: "Scalars" },
+      status_text: { archetype: "TextLog" },
+    }
+  },
+]
+```
+
+`temperature`, `rpm`, and `current` appear as independent time-series plots in the Rerun viewer under the `motor` entity. `status_text` is forwarded to the text log panel.
+
+## 3D Detections from a Custom Message
+
+Expand an array of detections into a `Points3D` archetype so each detection renders as a point in the 3D view. The `each: "."` tells Rewire that the `detections` field itself is the array to iterate, and dot notation resolves `position.x` / `position.y` / `position.z` on each element.
+
+```json5
+[
+  {
+    type: "my_robot/Detections",
+    fields: {
+      detections: {
+        archetype: "Points3D",
+        each: ".",
+        x: "position.x",
+        y: "position.y",
+        z: "position.z",
+        label: "class",
+      },
+    }
+  },
+]
+```
+
+Each detection in the array is logged as an individual `Points3D` instance labelled with its `class` field.
+
+## Nested Sensor Data
+
+Recurse into a sub-message (`imu`) to log its individual components as scalars, while mapping a sibling sub-message (`gps`) as a composite `GeoPoints` archetype. The `fields` key triggers recursive descent; the `archetype` key triggers composite mapping.
+
+```json5
+[
+  {
+    type: "my_robot/SensorPack",
+    entity: "sensors",
+    fields: {
+      imu: {
+        fields: {
+          accel_x: { archetype: "Scalars" },
+          accel_y: { archetype: "Scalars" },
+          accel_z: { archetype: "Scalars" },
+          gyro_x: { archetype: "Scalars" },
+          gyro_y: { archetype: "Scalars" },
+          gyro_z: { archetype: "Scalars" },
+        }
+      },
+      gps: {
+        archetype: "GeoPoints",
+        lat: "latitude",
+        lon: "longitude",
+        alt: "altitude",
+      },
+    }
+  },
+]
+```
+
+IMU components land at entity paths like `sensors/imu/accel_x`. The GPS sub-message becomes a single `GeoPoints` entity at `sensors/gps`.
+
+## Bounding Boxes from a Vision Pipeline
+
+Map 2D detection results to `Boxes2D` by expanding the `boxes` array and binding each box's center coordinates, dimensions, and class label to the archetype's slots.
+
+```json5
+[
+  {
+    type: "my_robot/BoundingBoxes",
+    fields: {
+      boxes: {
+        archetype: "Boxes2D",
+        each: ".",
+        x: "center_x",
+        y: "center_y",
+        w: "width",
+        h: "height",
+        label: "class_name",
+      },
+    }
+  },
+]
+```
+
+Every element in the `boxes` array is rendered as a labelled 2D bounding box overlaid on the matching image entity in Rerun.
+
+## Combining with Built-In Types
+
+Custom mappings are additive — they work alongside Rewire's 74 built-in type mappings. Topics whose types already have a built-in converter continue to work exactly as before. If a topic's type has **both** a built-in converter and a custom mapping entry, the custom mapping takes precedence.
+
+<Note>
+  You do not need to replicate built-in mappings in your JSON5 file. Only add entries for message types that are not already supported, or for types where you want to override the default behaviour.
+</Note>
+
+<CardGroup cols={2}>
+  <Card title="Archetypes" href="/custom-mappings/archetypes">
+    Full reference for every supported archetype and its fields.
+  </Card>
+  <Card title="Supported Types" href="/supported-types">
+    Browse the 74 built-in ROS 2 to Rerun type mappings.
+  </Card>
+</CardGroup>

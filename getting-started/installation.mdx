@@ -1,0 +1,199 @@
+---
+title: "Install Rewire on macOS or Linux"
+sidebarTitle: "Installation"
+description: "Install the Rewire bridge and viewer on macOS (Apple Silicon) or Linux (x86_64, aarch64) in seconds using the install script, pixi, APT, or Nix."
+---
+
+Pick the installation method that best fits your setup. Every method delivers the same two binaries: `rewire` (the bridge) and `rewire-viewer` (the custom Rerun-based viewer).
+
+## Install methods
+
+<Tabs>
+  <Tab title="Install script">
+    The fastest way to install Rewire — detects your OS and architecture, downloads the latest binaries, and installs them to `~/.local/bin`.
+
+    ```bash
+    curl -fsSL https://rewire.run/install.sh | sh
+    ```
+
+    That target is a directory you own, so later upgrades never need `sudo`. The script tells you which line to add to your shell profile when `~/.local/bin` is not yet on your `PATH`.
+
+    **Custom install directory**
+
+    Override the location with `INSTALL_DIR`. Keep in mind that a root-owned directory makes every upgrade require `sudo`.
+
+    ```bash
+    curl -fsSL https://rewire.run/install.sh | INSTALL_DIR=/usr/local/bin sh
+    ```
+
+    **Pin a specific version**
+
+    The script installs the latest release unless you name one. Set `REWIRE_VERSION` to pin a specific version — useful to fall back to a known-good build if a release regresses on your setup.
+
+    ```bash
+    curl -fsSL https://rewire.run/install.sh | REWIRE_VERSION=0.9.1 sh
+    ```
+
+    **Shadowed installs**
+
+    When an older copy of `rewire` comes first on your `PATH`, the script warns that it shadows the new install and prints how to clear it. Re-run with `REWIRE_REMOVE_SHADOWED=1` to remove that copy automatically.
+  </Tab>
+  <Tab title="pixi">
+    If you use [pixi](https://prefix.dev), install Rewire directly from the Rewire channel:
+
+    ```bash
+    pixi global install -c https://prefix.dev/rewire rewire
+    ```
+  </Tab>
+  <Tab title="APT (Debian/Ubuntu)">
+    Add the Rewire APT repository and install via `apt`:
+
+    ```bash
+    curl -fsSL https://apt.rewire.run/key.gpg | sudo gpg --dearmor -o /usr/share/keyrings/rewire.gpg
+    echo "deb [signed-by=/usr/share/keyrings/rewire.gpg] https://apt.rewire.run stable main" | sudo tee /etc/apt/sources.list.d/rewire.list
+    sudo apt update && sudo apt install rewire
+    ```
+  </Tab>
+  <Tab title="Nix">
+    Run Rewire without installing anything:
+
+    ```bash
+    nix run github:rewire-run/rewire
+    ```
+
+    **NixOS / nix-darwin configuration**
+
+    Add it to your configuration by taking the flake as an input:
+
+    ```nix
+    {
+      inputs.rewire.url = "github:rewire-run/rewire";
+
+      # then, in a module
+      environment.systemPackages = [ rewire.packages.x86_64-linux.default ];
+    }
+    ```
+
+    The flake also exposes `overlays.default`, which puts `rewire` on `pkgs`. Rewire is unfree, so the overlay route needs `nixpkgs.config.allowUnfree = true` in your own configuration — the `packages` output already allows it, so `nix run` and `nix profile` need nothing extra.
+
+    **Imperative install**
+
+    ```bash
+    nix profile add github:rewire-run/rewire
+    ```
+
+    <Note>
+      The flake repacks the published release archives rather than building from source, so it installs the same binaries every other method does.
+    </Note>
+  </Tab>
+</Tabs>
+
+## Supported platforms
+
+| OS | Architecture |
+|---|---|
+| macOS | aarch64 (Apple Silicon) |
+| Linux | x86\_64, aarch64 |
+
+<Warning>
+  Intel macOS is not supported. No build is published for it, and Rosetta cannot run an Apple Silicon binary on an Intel machine. Building from source is the only option for Intel Mac.
+</Warning>
+
+## Verify installation
+
+Confirm both binaries are on your `PATH` and the version is as expected:
+
+```bash
+rewire --version
+```
+
+## Updating
+
+<Tabs>
+  <Tab title="Install script">
+    ```bash
+    rewire upgrade
+    ```
+
+    Both `rewire` and `rewire-viewer` are updated, and neither needs `sudo` when they live in a directory you own.
+
+    **Relocating a legacy install**
+
+    If an earlier version installed `rewire` into `/usr/local/bin`, run the relocation once — without `sudo` — to move both binaries into `~/.local/bin`. An install placed there cannot move itself, so it keeps asking for `sudo` on every upgrade until you do.
+
+    ```bash
+    rewire upgrade --relocate
+    ```
+
+    Alternatively, remove the old copies and reinstall from scratch:
+
+    ```bash
+    sudo rm -f /usr/local/bin/rewire /usr/local/bin/rewire-viewer
+    curl -fsSL https://rewire.run/install.sh | sh
+    ```
+  </Tab>
+  <Tab title="pixi">
+    ```bash
+    pixi global upgrade -c https://prefix.dev/rewire rewire
+    ```
+  </Tab>
+  <Tab title="APT">
+    ```bash
+    sudo apt update && sudo apt upgrade rewire
+    ```
+  </Tab>
+  <Tab title="Nix">
+    Move the flake input to the latest release, then rebuild:
+
+    ```bash
+    nix flake update rewire
+    ```
+
+    For an imperative install:
+
+    ```bash
+    nix profile upgrade rewire
+    ```
+  </Tab>
+</Tabs>
+
+<Tip>
+  Rewire checks for new versions in the background and notifies you when an update is available. In-place upgrades via `rewire upgrade` only work for installs made by the install script.
+</Tip>
+
+## Uninstalling
+
+<Tabs>
+  <Tab title="Install script">
+    ```bash
+    rewire uninstall
+    ```
+
+    Both binaries are removed, along with the version cache kept beside them. Your config file and logs stay in place, so reinstalling later picks up the settings you had. Add `--purge` to remove those too, and `-y` to skip the confirmation prompt.
+  </Tab>
+  <Tab title="pixi">
+    ```bash
+    pixi global uninstall rewire
+    ```
+  </Tab>
+  <Tab title="APT">
+    ```bash
+    sudo apt remove rewire
+    ```
+  </Tab>
+  <Tab title="Nix">
+    Drop `rewire` from `environment.systemPackages` and rebuild. For an imperative install:
+
+    ```bash
+    nix profile remove rewire
+    ```
+
+    <Note>
+      `rewire uninstall` will not touch a Nix install. It recognises the Nix store the same way it recognises pixi, APT, and Homebrew, and refuses with the appropriate package manager command rather than deleting read-only paths.
+    </Note>
+  </Tab>
+</Tabs>
+
+<Info>
+  `rewire uninstall` only removes installs made by the install script. If a package manager owns the binary, the command refuses and names the correct tool to run instead — nothing deletes a file out from under `dpkg` or `brew`.
+</Info>

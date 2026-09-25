@@ -1,0 +1,251 @@
+---
+title: "Configure Rewire with a JSON5 Config File"
+sidebarTitle: "JSON5 Config"
+description: "Set Rewire's app ID, transports, topic filters, output targets, and more with a single JSON5 file. All fields are optional — CLI flags always win."
+---
+
+Rewire loads its configuration from a JSON5 file at startup. Every field is optional, sane defaults apply when a field is omitted, and any CLI flag you pass on the command line takes precedence over the corresponding config value. Use `rewire config generate` to produce a starter file with every field pre-populated and documented inline.
+
+## Config file location
+
+<Tabs>
+  <Tab title="Default path">
+    Rewire looks for your config file at the following location automatically — no flag needed:
+
+    ```
+    ~/.config/rewire/config.json5
+    ```
+  </Tab>
+  <Tab title="Custom path">
+    Point Rewire at any file by passing `--config`:
+
+    ```bash
+    rewire record --config /path/to/config.json5
+    ```
+  </Tab>
+</Tabs>
+
+## Full example
+
+The block below shows every supported field. All are optional — include only what you need.
+
+```json5
+{
+    app_id: "my-robot",
+    transport: "all",
+    domain_id: 42,
+    queue_depth: 16,
+    log_level: "rewire=debug",
+    diagnostics: true,
+    latched_history_depth: 8,
+    output: {
+        connect: "127.0.0.1:9870",
+        save: "/tmp/recording",
+        save_session: false,
+    },
+    serve: {
+        bind: "0.0.0.0",
+        port: 9876,
+        memory_limit: "1MiB",
+        cors_allowed_origins: ["https://*.example.com"],
+        save: "/tmp/relay-archive",
+    },
+    topics: {
+        include: ["/camera/*", "/odom"],
+        exclude: ["/rosout", "/parameter_events"],
+    },
+    topic_overrides: [
+        { name: "/camera/image", max_hz: 10 },
+        { name: "/diagnostics", enabled: false },
+    ],
+    ws: {
+        port: 9090,
+        auth_token: "your-secret-token",
+    },
+    zenoh: {
+        connect: ["tcp/192.168.1.100:7447"],
+    },
+}
+```
+
+## Fields
+
+### `app_id`
+
+Application ID attached to the Rerun recording. Defaults to `"rewire"`.
+
+---
+
+### `transport`
+
+Which wire transports to start. Accepted values: `"all"`, `"dds"`, or `"zenoh"`. Default: `"all"`, which starts both DDS and Zenoh.
+
+Overridden by `--transport` on the command line. The setting is shared by `rewire record`, `rewire doctor`, and `rewire mappings generate`.
+
+---
+
+### `domain_id`
+
+ROS 2 domain ID. Defaults to the `ROS_DOMAIN_ID` environment variable, or `0` if the variable is unset.
+
+---
+
+### `discovery_timeout`
+
+Seconds to block on initial topic discovery before subscribing. Unset by default, so recording starts immediately and topics are bridged as they are discovered. Set this only if you want the bridge to wait for the graph to settle before it begins subscribing.
+
+---
+
+### `queue_depth`
+
+Message queue depth per subscription. The default varies by QoS profile.
+
+---
+
+### `latched_history_depth`
+
+History depth for latched (transient-local) topics such as `/tf_static`. Equivalent to the CLI flag `--latched-depth`. Raise this value when several sources publish on the same latched topic and some messages are missed.
+
+---
+
+### `log_level`
+
+Tracing filter string that controls terminal verbosity. Examples: `"info"`, `"rewire=debug"`. The `RUST_LOG` environment variable takes precedence when set. The default shows info-level output from Rewire itself and warnings from everything else.
+
+<Note>
+  This filter only affects terminal output. Rewire always writes a debug-level log file to disk, regardless of the `log_level` setting. See the FAQ for the log file location and retention policy.
+</Note>
+
+---
+
+### `diagnostics`
+
+Enable per-topic diagnostics — Hz, bandwidth, drops, and latency. Default: `false`.
+
+---
+
+### `output`
+
+Controls where Rewire sends recorded data. The sub-fields are:
+
+<ResponseField name="connect" type="string">
+  Address of a remote Rerun viewer or relay in `host:port` format.
+</ResponseField>
+
+<ResponseField name="save" type="string">
+  Filename stem for recording archives. Each recording is written to `<stem>_<recording_id>.rrd`. A `.rrd` suffix on the stem is stripped automatically.
+</ResponseField>
+
+<ResponseField name="live" type="boolean" default="true">
+  Whether a `save` run keeps its live half. Set to `false` for file-only recording — no port probe, no connect, no viewer spawn. Equivalent to `--no-live`. Requires `save`; conflicts with `connect`.
+</ResponseField>
+
+<ResponseField name="save_session" type="boolean" default="false">
+  When `save` is set, append every recording from the run to one `<stem>_<timestamp>.rrd` instead of one file per recording.
+</ResponseField>
+
+<ResponseField name="flush_tick_ms" type="integer" default="8">
+  How often the live stream is flushed to the viewer, in milliseconds. Lower values reduce display latency but send the viewer more, smaller batches. Ignored when `live` is `false`.
+</ResponseField>
+
+<ResponseField name="scalar_flush_tick_ms" type="integer" default="150">
+  Hold plot-class chunks (scalars, series styling, text logs) for this many milliseconds, then forward them merged into one chunk per entity. Plots look identical while chunk rate drops by an order of magnitude. Set to `0` to disable coalescing.
+</ResponseField>
+
+<ResponseField name="live_queue_mib" type="integer" default="64">
+  Byte budget in MiB for the live stream's non-blocking queue. A slow or dead consumer causes counted drops of the oldest data instead of stalling the bridge. Set to `0` to remove the bound.
+</ResponseField>
+
+---
+
+### `topics`
+
+Glob-based topic allow and deny lists. Both fields accept an array of glob strings.
+
+<ResponseField name="include" type="string[]">
+  Glob patterns for topics to subscribe to. When set, only matching topics are bridged.
+</ResponseField>
+
+<ResponseField name="exclude" type="string[]">
+  Glob patterns for topics to ignore. Matched topics are never subscribed to, regardless of `include`.
+</ResponseField>
+
+See [Topic Filtering](/configuration/topic-filtering) for glob syntax and precedence rules.
+
+---
+
+### `topic_overrides`
+
+An array of per-topic override objects. Each entry supports:
+
+<ResponseField name="name" type="string" required>
+  Topic name to match. Exact match is required when using `enabled`. May be a glob (`*` within a segment, `**` across segments) when using `max_hz`.
+</ResponseField>
+
+<ResponseField name="enabled" type="boolean">
+  Set to `false` to permanently disable this topic. Takes the highest precedence of all filtering rules.
+</ResponseField>
+
+<ResponseField name="max_hz" type="number">
+  Cap the topic's bridged rate in messages per second. Excess messages are dropped before deserialization. Ignored on latched topics.
+</ResponseField>
+
+See [Topic Filtering — Throttling](/configuration/topic-filtering#throttling-high-rate-topics) for matching rules and the equivalent `--throttle` CLI flag.
+
+---
+
+### `ws`
+
+WebSocket server settings. The WebSocket server must also be enabled at runtime with the `--ws` flag.
+
+<ResponseField name="port" type="integer" default="9090">
+  WebSocket server listen port.
+</ResponseField>
+
+<ResponseField name="auth_token" type="string">
+  Bearer token for authentication. Required when running with `--secure`.
+</ResponseField>
+
+---
+
+### `serve`
+
+Settings for the standalone relay started with `rewire serve`. CLI flags take precedence; passing `cors_allowed_origins` on the command line replaces this list rather than merging it.
+
+<Note>
+  The `memory_limit` field also applies to the in-process relay started by a plain `rewire record` or `rewire play` run when no external relay address is given.
+</Note>
+
+<ResponseField name="bind" type="string" default="0.0.0.0">
+  Address to bind the gRPC listener on.
+</ResponseField>
+
+<ResponseField name="port" type="integer" default="9876">
+  gRPC listen port.
+</ResponseField>
+
+<ResponseField name="memory_limit" type="string" default="1MiB">
+  Buffered history limit before the oldest data is evicted. Accepts human-readable sizes (`64MiB`, `500MB`, `50%`, `unlimited`). The default keeps essentially no temporal history.
+</ResponseField>
+
+<ResponseField name="cors_allowed_origins" type="string[]">
+  Origin patterns allowed for cross-origin gRPC-web requests from browser-based viewers. Example: `["https://*.example.com"]`.
+</ResponseField>
+
+<ResponseField name="save" type="string">
+  Filename stem for the relay archive. Written to `<stem>_<timestamp>.rrd`.
+</ResponseField>
+
+---
+
+### `zenoh`
+
+Zenoh transport settings. These values are ignored unless `transport` is set to `"zenoh"` or `"all"`.
+
+<ResponseField name="connect" type="string[]">
+  List of Zenoh router endpoints to connect to. When unset, Rewire dials `tcp/localhost:7447` — the default address where the `rmw_zenoh` router listens.
+</ResponseField>
+
+<ResponseField name="multicast_scouting" type="boolean" default="false">
+  Also scout for peers over multicast, in addition to dialing the listed endpoints. Defaults to `false` because the `rmw_zenoh` router runs with scouting disabled — leaving this on will not find a `rmw_zenoh` router.
+</ResponseField>

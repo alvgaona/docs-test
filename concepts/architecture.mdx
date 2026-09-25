@@ -1,0 +1,68 @@
+---
+title: "Rewire Architecture: Passive ROS 2 Observer Model"
+sidebarTitle: "Architecture"
+description: "Learn how Rewire connects to your ROS 2 network as a passive DDS and Zenoh observer — no ROS 2 install, no node registration required."
+---
+
+Rewire is a standalone observer that sits alongside your ROS 2 network. It connects at the middleware layer, listening to DDS and Zenoh traffic directly — your nodes never know it's there, and nothing in your existing setup changes.
+
+<Note>
+  Rewire is **not** a ROS 2 node. It does not use `rclcpp`, does not appear in
+  the ROS graph, and does not interfere with your existing nodes or their QoS
+  negotiations.
+</Note>
+
+## Passive Observer
+
+Rewire joins the network by speaking the middleware protocols directly, not by registering as a participant in the ROS graph. This design gives you:
+
+- No extra load on the ROS graph
+- No additional discovery overhead for your nodes
+- No risk of interfering with node lifecycles or QoS negotiations
+- Compatibility with any ROS 2 distribution — Humble, Iron, Jazzy, Kilted, Lyrical, and Rolling
+
+Because Rewire never touches `rclcpp`, it places zero requirements on your existing nodes and works identically across every supported distribution.
+
+## DDS and Zenoh
+
+Rewire speaks both DDS and Zenoh natively and simultaneously. When you run `rewire record`, it discovers topics on both transports and subscribes to whichever transport each topic is available on.
+
+If your network uses the default DDS middleware (CycloneDDS, FastDDS, or similar), Rewire connects via DDS. If you're running Zenoh-based ROS 2 via `rmw_zenoh`, Rewire connects via Zenoh. Mixed networks work too — Rewire handles both transports at the same time without any extra configuration.
+
+## Data Pipeline
+
+Every message travels through four stages from the moment Rewire receives it to the moment it appears in the viewer.
+
+<Steps>
+  <Step title="Subscribe">
+    Rewire subscribes to topics on DDS and Zenoh. Discovery runs continuously, so new topics are picked up automatically as nodes start.
+  </Step>
+  <Step title="Deserialize">
+    Raw CDR-encoded bytes are deserialized using the topic's type information. Standard ROS 2 message schemas are bundled; custom types are resolved from your workspace or via service introspection.
+  </Step>
+  <Step title="Convert">
+    Each deserialized message is mapped to a Rerun archetype. For example, `sensor_msgs/Image` becomes a Rerun `Image`, `nav_msgs/Odometry` becomes `InstancePoses3D` plus a set of `Scalars` entities.
+  </Step>
+  <Step title="Stream">
+    Converted data is streamed through the relay to the Rewire Viewer over gRPC. Each step happens per-message with minimal buffering, so data flows from network to viewer in real time.
+  </Step>
+</Steps>
+
+In the default flow the relay is embedded in the bridge and hosts both the data stream and the Rewire service (heartbeats, metadata) on port `9876`. A standalone `rewire serve` relay does the same. Viewers connect to the relay as clients, so either side can restart without disturbing the other.
+
+## No ROS 2 Install Required
+
+Because Rewire implements the middleware protocols directly, it does not depend on any ROS 2 libraries. The binary is fully self-contained — no `setup.bash`, no `LD_LIBRARY_PATH`, no `ament` packages.
+
+The one exception is URDF mesh resolution: if your robot description references mesh files installed by ROS 2 packages, you'll need those packages on disk. For everything else — subscribing, deserializing, and streaming — Rewire needs nothing from the ROS 2 toolchain.
+
+Type resolution for custom messages happens automatically via ROS 2 service introspection on Jazzy and later nodes. For pre-Jazzy distributions (Humble, Iron), you'll need to source your workspace so Rewire can read `.msg` files for deserialization. See [Topic Discovery](/concepts/discovery) for details.
+
+## Two Binaries
+
+Rewire ships as two static binaries with no runtime dependencies:
+
+- **`rewire`** — the bridge that connects to your ROS 2 network, discovers topics, and streams data to the viewer
+- **`rewire-viewer`** — a custom Rerun-based viewer with ROS 2-specific panels for navigating the entity tree, TF frames, and topic metadata
+
+Both binaries run on macOS and Linux across `x86_64` and `aarch64` architectures. Install them, run `rewire record`, and the viewer launches automatically.

@@ -1,0 +1,116 @@
+---
+title: "Custom Mapping Archetypes for ROS 2 Messages"
+sidebarTitle: "Archetypes"
+description: "Reference for every Rerun archetype available in custom mappings: leaf types, composite types, array expansion, nested fields, and entity key notation."
+---
+
+Rewire supports two categories of archetypes in custom mappings: leaf archetypes for simple one-to-one field mappings, and composite archetypes for multi-field Rerun primitives. You can also expand arrays with `each`, recurse into sub-messages with `fields`, and navigate nested structures using dot-notation entity keys.
+
+## Leaf Archetypes
+
+Leaf archetypes map a single message field directly to a Rerun primitive. Use them for numeric values and string-based log or document fields.
+
+| Archetype | Description | Field type |
+| --- | --- | --- |
+| `Scalars` | Numeric time series | Any numeric field |
+| `TextLog` | Log entry with severity | String field |
+| `TextDocument` | Rich text display | String field |
+
+```json5
+{
+  temperature: { archetype: "Scalars" },
+  message: { archetype: "TextLog" },
+  description: { archetype: "TextDocument" },
+}
+```
+
+## Composite Archetypes
+
+Composite archetypes combine multiple sub-fields from a message into a single Rerun archetype. Specify which message fields map to each required (and optional) slot.
+
+| Archetype | Required fields | Optional fields |
+| --- | --- | --- |
+| `Points2D` | `x`, `y` | `label`, `color` |
+| `Points3D` | `x`, `y`, `z` | `label`, `color` |
+| `Boxes2D` | `x`, `y`, `w`, `h` | `label` |
+| `Boxes3D` | `x`, `y`, `z`, `w`, `h`, `d` | `label` |
+| `InstancePoses3D` | `x`, `y`, `z` | `qx`, `qy`, `qz`, `qw` |
+| `Arrows3D` | `ox`, `oy`, `oz`, `dx`, `dy`, `dz` | — |
+| `GeoPoints` | `lat`, `lon` | `alt` |
+| `Transform3D` | `x`, `y`, `z` | `qx`, `qy`, `qz`, `qw` |
+| `LineStrips3D` | `points` | — |
+
+```json5
+{
+  position: {
+    archetype: "Points3D",
+    x: "x", y: "y", z: "z",
+    label: "name",
+  },
+}
+```
+
+<Note>
+  The values on the right-hand side of each slot (e.g., `"x"`, `"name"`) are the field names in the ROS 2 message. You can use dot notation to reach nested fields — see [Entity Keys](#entity-keys) below.
+</Note>
+
+## Array Expansion
+
+Use `each` to iterate over an array field and log each element as a separate Rerun entry. Set `each` to `"."` when the mapped field itself is the array.
+
+```json5
+{
+  detections: {
+    archetype: "Points3D",
+    each: ".",
+    x: "position.x", y: "position.y", z: "position.z",
+    label: "class",
+  },
+}
+```
+
+The `each` value specifies the path to the array relative to the current field. Using `"."` means the field (`detections`) is itself the array, and each element is expanded individually. Dot notation in slot values (e.g., `"position.x"`) is resolved relative to each array element.
+
+## Nested Fields
+
+Use a `fields` key instead of an `archetype` key to recurse into a sub-message and apply further mappings to its children. This is useful when you want to log individual components of a nested type without creating a composite archetype.
+
+```json5
+{
+  position: {
+    fields: {
+      x: { archetype: "Scalars" },
+      y: { archetype: "Scalars" },
+      z: { archetype: "Scalars" },
+    }
+  },
+}
+```
+
+Each child field is logged as its own entity under the parent's entity path (e.g., `motor/position/x`, `motor/position/y`, `motor/position/z`).
+
+## Entity Keys
+
+Use dot notation anywhere a field name is expected to reach values inside nested sub-messages. This works for composite archetype slot values, `each` paths, and nested field keys.
+
+```json5
+{
+  target: {
+    archetype: "Points3D",
+    x: "pose.position.x",
+    y: "pose.position.y",
+    z: "pose.position.z",
+  },
+}
+```
+
+Rewire resolves each dotted path at runtime against the incoming message, so you can reach arbitrarily deep fields without restructuring your mapping.
+
+<CardGroup cols={2}>
+  <Card title="Overview" href="/custom-mappings/overview">
+    How to load mappings and the full mapping entry structure.
+  </Card>
+  <Card title="Examples" href="/custom-mappings/examples">
+    Real-world mapping configurations for common robotics messages.
+  </Card>
+</CardGroup>

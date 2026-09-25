@@ -1,0 +1,127 @@
+---
+title: "Filter ROS 2 Topics with Glob Patterns in Rewire"
+sidebarTitle: "Topic Filtering"
+description: "Include or exclude topics by glob pattern, disable them individually, and throttle high-rate topics — via CLI flags or your JSON5 config file."
+---
+
+Rewire supports glob patterns for selecting which topics to subscribe to. You can pass patterns directly as CLI flags for a quick one-off session, or save them in your [JSON5 config file](/configuration/json5-config) for repeatable runs. Both approaches work together — CLI flags are checked before config entries, so the command line always wins per topic.
+
+## Include patterns
+
+To subscribe only to topics that match a pattern, use `--topics` on the CLI or the `topics.include` array in config:
+
+<CodeGroup>
+```bash CLI
+rewire record --topics "/camera/*" "/odom"
+```
+
+```json5 config.json5
+{
+    topics: {
+        include: ["/camera/*", "/odom"],
+    },
+}
+```
+</CodeGroup>
+
+When `include` is set, Rewire subscribes only to matching topics. Any topic not matched by an include pattern is ignored unless you also have no include patterns at all — in which case everything not explicitly excluded is subscribed to.
+
+## Exclude patterns
+
+To subscribe to everything except certain topics, use `--exclude` on the CLI or `topics.exclude` in config:
+
+<CodeGroup>
+```bash CLI
+rewire record --exclude "/rosout" "/parameter_events" "/diagnostics/*"
+```
+
+```json5 config.json5
+{
+    topics: {
+        exclude: ["/rosout", "/parameter_events", "/diagnostics/*"],
+    },
+}
+```
+</CodeGroup>
+
+Exclude patterns are evaluated after include patterns. A topic matched by an exclude pattern is never subscribed to, even if it also matches an include pattern.
+
+## Glob syntax
+
+Rewire glob patterns follow the rules in the table below. Note that `*` does not cross path segment boundaries — use `**` when you need to match nested segments.
+
+| Pattern | Matches |
+|---|---|
+| `*` | Any sequence of characters within a single path segment |
+| `/camera/*` | `/camera/image`, `/camera/depth` — but **not** `/camera/depth/points` |
+| `/robot/*/status` | `/robot/arm/status`, `/robot/base/status` |
+| `/lidar/**` | `/lidar/points`, `/lidar/front/points`, any depth under `/lidar` |
+
+## Per-topic overrides
+
+Disable specific topics by name using `topic_overrides` in your config file. This is the highest-precedence rule — a topic with `enabled: false` is never subscribed to, regardless of include or exclude patterns:
+
+```json5
+{
+    topic_overrides: [
+        { name: "/diagnostics", enabled: false },
+        { name: "/camera/debug", enabled: false },
+    ],
+}
+```
+
+<Tip>
+  `enabled` requires an exact topic name. It does not accept glob patterns. Use `exclude` patterns when you need wildcard-based disabling.
+</Tip>
+
+## Throttling high-rate topics
+
+A topic that publishes faster than you need can be capped so excess messages are dropped before they are deserialized, converted, or logged — saving CPU and bandwidth without losing the data you care about.
+
+<CodeGroup>
+```bash CLI
+rewire record --throttle "/camera/image_raw=10" "/tf=100"
+```
+
+```json5 config.json5
+{
+    topic_overrides: [
+        { name: "/camera/image_raw", max_hz: 10 },
+        { name: "/lidar/**", max_hz: 5 },
+    ],
+}
+```
+</CodeGroup>
+
+Rates must be finite and positive. Fractional values like `0.5` (one message every two seconds) are accepted. The `rewire play` command also accepts `--throttle`, where the cap is applied in bag time rather than wall time.
+
+<Note>
+  Latched (transient-local) topics such as `/tf_static` are **never throttled**. A `max_hz` cap on a latched topic is silently ignored with a warning, because dropping a latched message would permanently lose data that is published only once.
+</Note>
+
+Throttling changes what Rewire bridges — it does not affect what the publisher sends. The diagnostics panel continues to report the topic's real wire rate, and displays the effective cap alongside it.
+
+### Matching rules
+
+Unlike `enabled`, a `max_hz` entry in `topic_overrides` may use glob syntax (`*` within a segment, `**` across segments). When multiple entries could apply to the same topic, Rewire resolves them in this order:
+
+1. An exact topic name beats any glob.
+2. Among globs, the **first** matching entry wins.
+3. Command-line `--throttle` entries are evaluated before config entries, so the CLI wins per topic.
+
+Caps are resolved when Rewire subscribes to each topic, so topics that appear on the network after startup automatically pick up any matching patterns.
+
+## Precedence
+
+When multiple filtering rules apply to the same topic, Rewire evaluates them in this order — the first matching rule that makes a decision wins:
+
+1. **`topic_overrides` with `enabled: false`** — always wins; topic is never subscribed to.
+2. **`--exclude` / `topics.exclude`** — matched topics are excluded.
+3. **`--topics` / `topics.include`** — only matched topics are subscribed to.
+4. **Default** — with neither include nor exclude naming a topic, everything not excluded is subscribed to. This is what a bare `rewire record` does, equivalent to passing `--all` explicitly.
+
+## Buffer side-channels
+
+On ROS 2 Lyrical, some transports expose internal buffer side-channel topics named `<topic>/_buf_*`. These mirror a real subscription but never deliver any data. Rewire skips them automatically during auto-subscribe.
+
+To bridge a side-channel topic anyway, name it explicitly with `--topics`. An exact match in an include pattern overrides the automatic exclusion.

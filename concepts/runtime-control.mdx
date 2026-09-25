@@ -1,0 +1,62 @@
+---
+title: "Runtime Control: Manage Recordings Without Restarting"
+sidebarTitle: "Runtime Control"
+description: "Use Rewire's loopback gRPC control plane to start new recordings, inspect live topics, and integrate recording management into CI/CD pipelines."
+---
+
+Rewire supports runtime control over a loopback gRPC service, so you can start new recordings and inspect the topics a running bridge is subscribed to — all without restarting the bridge or losing any data.
+
+## How It Works
+
+When `rewire record` starts, it hosts a gRPC control service on an OS-assigned port on `127.0.0.1` and registers itself by writing a small per-process file to the runtime directory:
+
+```
+rewire-<pid>.json
+```
+
+CLI commands such as `rewire log` and `rewire topics` read that registry to discover the live bridge and dial its gRPC endpoint. Because the file is keyed by PID, multiple bridges can run on the same machine simultaneously — each one registers independently.
+
+<Note>
+  Earlier versions of Rewire used a Unix domain socket for IPC. As of v0.4.0,
+  runtime control runs over loopback gRPC. The Unix-socket IPC has been removed.
+</Note>
+
+## Starting a New Recording
+
+To tell the running bridge to open a new recording session, run:
+
+```bash
+rewire log
+```
+
+The viewer opens a new recording session while the bridge keeps streaming — no data loss, no reconnection. Recordings started this way behave exactly like the startup recording: they survive relay and viewer restarts, and `rewire status` reports whichever recording is currently live.
+
+If several bridges are running on the same machine, target a specific one by PID:
+
+```bash
+rewire log --pid 12345
+```
+
+## Use Cases
+
+<CardGroup cols={3}>
+  <Card title="Experiment Segmentation" icon="flask">
+    Start a new recording for each test run or scenario without stopping the bridge. Each recording captures exactly the data you care about.
+  </Card>
+  <Card title="Continuous Monitoring" icon="chart-line">
+    Keep Rewire running indefinitely and trigger recordings on demand — useful for long-running robots where you only want to capture specific intervals.
+  </Card>
+  <Card title="CI/CD Integration" icon="gear">
+    Script recording management in automated test pipelines. Start a recording before a test, stop it after, and archive the result — all without human interaction.
+  </Card>
+</CardGroup>
+
+## Requirements
+
+Runtime control requires both the running `rewire record` instance and the client command to be on the **same machine**. The gRPC service binds to loopback (`127.0.0.1`) only and is not reachable over the network.
+
+<Note>
+  `rewire status` is different from the commands above — it queries a
+  [relay](/relay) over the network rather than a local bridge, so it works from
+  any machine that can reach the relay port.
+</Note>

@@ -1,0 +1,73 @@
+---
+title: "URDF Loading: Automatic Robot Model Visualization"
+sidebarTitle: "URDF Loading"
+description: "Rewire automatically detects /robot_description topics and loads your robot model for 3D visualization — no extra configuration required."
+---
+
+Rewire automatically detects topics ending in `/robot_description` and loads the URDF for 3D visualization in the Rerun viewer. As soon as a message arrives on that topic, the full robot model — links, joints, and meshes — appears in your 3D viewport with no extra setup.
+
+## How it works
+
+When Rewire receives a message on a `/robot_description` topic (typically `std_msgs/String`), it runs through a four-step loading process:
+
+<Steps>
+  <Step title="Parse the URDF XML">
+    Rewire reads the incoming message and parses the URDF XML to extract the robot name and the full link-and-joint structure.
+  </Step>
+  <Step title="Load robot model geometry">
+    The robot model geometry is loaded using Rerun's `UrdfDataLoader`, resolving all links, joints, and any referenced mesh files.
+  </Step>
+  <Step title="Log the model as Asset3D">
+    Rewire logs the fully resolved robot model as a Rerun `Asset3D` archetype, making it available in the 3D viewport with all links and joints visible.
+  </Step>
+  <Step title="Log the raw URDF text">
+    The raw URDF XML is also logged as a `TextDocument` archetype so you can inspect the source description directly inside the viewer.
+  </Step>
+</Steps>
+
+## Mesh resolution
+
+URDF files often reference meshes with `package://` URLs. For these to resolve correctly, Rewire needs to know where your ROS 2 packages are installed. Set `AMENT_PREFIX_PATH` before running Rewire:
+
+```bash
+export AMENT_PREFIX_PATH=/opt/ros/humble/share
+rewire record
+```
+
+<Note>
+  If `AMENT_PREFIX_PATH` is not set, Rewire logs a warning and skips mesh loading. The robot skeleton (links and joints) will still be visible, but visual meshes will be missing.
+</Note>
+
+Mesh resolution also applies to `visualization_msgs/Marker` messages that use the `MESH_RESOURCE` type. The following mesh formats and URI schemes are all supported:
+
+| Supported mesh formats | Supported URI schemes        |
+| ---------------------- | ---------------------------- |
+| GLB                    | `package://`                 |
+| glTF                   | `file://`                    |
+| OBJ                    | Absolute paths               |
+| STL                    |                              |
+| DAE / COLLADA          |                              |
+
+## Multi-robot support
+
+Rewire derives a TF frame prefix from the topic namespace of each `/robot_description` topic. This lets multiple robots coexist in the same viewer without frame name collisions. Each robot appears as a separate entity tree in the Rerun viewer with its own set of TF frames.
+
+| Topic | Frame prefix | Example frame |
+| --- | --- | --- |
+| `/robot_description` | _(none)_ | `base_link` |
+| `/robot1/robot_description` | `/robot1/` | `/robot1/base_link` |
+| `/ns1/ns2/robot_description` | `/ns1/ns2/` | `/ns1/ns2/base_link` |
+
+The prefix uses a leading `/` to match the ROS TF convention.
+
+## Custom message types
+
+If your robot description is published on a non-standard topic or message type, source your ROS 2 workspace before running Rewire so it can deserialize the message:
+
+```bash
+source /opt/ros/humble/setup.bash
+source ~/my_ws/install/setup.bash
+rewire record
+```
+
+Workspace sourcing is also required for custom type resolution on pre-Jazzy ROS 2 distributions.

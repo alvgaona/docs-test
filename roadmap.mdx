@@ -1,0 +1,39 @@
+---
+title: "Rewire Roadmap: Planned Features and Improvements"
+sidebarTitle: "Roadmap"
+description: "What's in progress and what's planned for Rewire — Windows support, edge deployment, and Rerun Data Platform integration."
+---
+
+This roadmap reflects the current direction for Rewire. Development is shaped by real-world usage, so the items here give you a sense of where things are headed — not a delivery schedule.
+
+<Note>
+Nothing here is a commitment. Priorities may shift based on user feedback and real-world needs — items may change, be reordered, or be dropped entirely.
+</Note>
+
+Have a feature request? Reach out at [hello@rewire.run](mailto:hello@rewire.run).
+
+## In progress
+
+### Windows support
+
+Bringing Rewire to Windows for cross-platform development workflows. This work includes:
+
+- Windows x86\_64 binary builds
+- Install script for PowerShell
+- DDS discovery on Windows network stacks
+- CI/CD validation on Windows
+
+## Planned
+
+### Edge deployment
+
+Run Rewire on resource-constrained devices like NVIDIA Jetson, Raspberry Pi, and other embedded platforms. Focus areas:
+
+- Reduced memory footprint for limited RAM environments
+- ARM 32-bit support (current aarch64 builds already work on Jetson)
+- Broader CPU and bandwidth controls, building on the [per-topic rate caps](https://docs.rewire.run/configuration/topic-filtering#throttling-high-rate-topics) shipped in v0.7.0
+- Selective topic streaming to minimize network usage on metered connections
+
+### Rerun Data Platform integration
+
+Stream live data directly to cloud-hosted [Rerun Data Platform](https://rerun.io) instances, for fleet-wide analytics and long-term storage.

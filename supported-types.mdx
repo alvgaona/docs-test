@@ -1,0 +1,162 @@
+---
+title: "Built-In ROS 2 to Rerun Type Mappings Reference"
+sidebarTitle: "Type Mappings"
+description: "All 74 built-in ROS 2 message type mappings to Rerun archetypes, organized by package. No configuration required."
+---
+
+Rewire ships 74 built-in mappings from ROS 2 message types to Rerun archetypes — these work automatically with no configuration. Rewire aims to align its mappings with the conventions Rerun uses for MCAP ingestion, so data recorded with Rewire should look familiar if you've used Rerun's built-in MCAP loader. That said, full parity is not guaranteed — some mappings may differ where Rewire optimizes for live streaming or supports ROS 2-specific semantics that don't have a direct MCAP equivalent.
+
+<Note>
+Run `rewire types` at any time to see the current list of supported message types and their corresponding Rerun archetypes for your installed version.
+</Note>
+
+<Note>
+Several types log their reported uncertainty as an extra `Scalars` series alongside the primary measurement:
+
+- `Temperature`, `FluidPressure`, `RelativeHumidity`, `Illuminance`, `Range` — variance
+- `Imu` — orientation, angular velocity, and linear acceleration covariance diagonals
+- `Odometry` — twist covariance diagonal
+</Note>
+
+## example\_interfaces
+
+Newer ROS 2 distributions publish their demo topics with these types instead of the deprecated `std_msgs` primitives. They are wire-identical, and Rewire maps them the same way.
+
+| Message | Rerun Archetype |
+|---|---|
+| `Bool` | `Scalars` |
+| `Byte` | `Scalars` |
+| `Char` | `Scalars` |
+| `Float32` | `Scalars` |
+| `Float64` | `Scalars` |
+| `Int8` | `Scalars` |
+| `Int16` | `Scalars` |
+| `Int32` | `Scalars` |
+| `Int64` | `Scalars` |
+| `String` | `TextDocument` |
+| `UInt8` | `Scalars` |
+| `UInt16` | `Scalars` |
+| `UInt32` | `Scalars` |
+| `UInt64` | `Scalars` |
+
+## geometry\_msgs
+
+| Message | Rerun Archetype |
+|---|---|
+| `AccelStamped` | `Scalars` |
+| `AccelWithCovarianceStamped` | `Scalars` |
+| `PointStamped` | `Points3D` |
+| `PolygonStamped` | `LineStrips3D` |
+| `PoseArray` | `Points3D` |
+| `PoseStamped` | `InstancePoses3D`, `Scalars` |
+| `PoseWithCovarianceStamped` | `InstancePoses3D`, `Ellipsoids3D`, `Scalars` |
+| `QuaternionStamped` | `Scalars` |
+| `Twist` | `Scalars` |
+| `TwistStamped` | `Scalars` |
+| `TwistWithCovariance` | `Scalars` |
+| `TwistWithCovarianceStamped` | `Scalars` |
+| `Vector3Stamped` | `Scalars` |
+| `VelocityStamped` | `Scalars` |
+| `WrenchStamped` | `Scalars` |
+
+## geographic\_msgs
+
+| Message | Rerun Archetype |
+|---|---|
+| `GeoPoseStamped` | `GeoPoints`, `Scalars` |
+| `GeoPoseWithCovarianceStamped` | `GeoPoints`, `Scalars` |
+| `GeoPath` | `GeoLineStrings` |
+
+## nav\_msgs
+
+| Message | Rerun Archetype |
+|---|---|
+| `GridCells` | `Points3D` |
+| `OccupancyGrid` | `GridMap` |
+| `Odometry` | `InstancePoses3D`, `Ellipsoids3D`, `Scalars` |
+| `Path` | `LineStrips3D` |
+
+## nav2\_msgs
+
+| Message | Rerun Archetype |
+|---|---|
+| `VoxelGrid` | `VoxelGridMap` |
+
+<Note>
+The `VoxelGrid` converter is marked unstable while Rerun's `VoxelGridMap` archetype is itself experimental. Occupied voxels are colored by value through the Turbo colormap.
+</Note>
+
+## rcl\_interfaces
+
+| Message | Rerun Archetype |
+|---|---|
+| `Log` | `TextLog` |
+
+## sensor\_msgs
+
+| Message | Rerun Archetype |
+|---|---|
+| `BatteryState` | `Scalars` |
+| `CameraInfo` | `Pinhole` |
+| `CompressedImage` | `EncodedImage`, `EncodedDepthImage`, `VideoStream` (h264 and h265 streams) |
+| `FluidPressure` | `Scalars` |
+| `Illuminance` | `Scalars` |
+| `Image` | `Image`, `DepthImage` |
+| `Imu` | `Scalars` |
+| `JointState` | `Scalars` |
+| `Joy` | `Scalars` |
+| `LaserScan` | `Points3D` |
+| `MagneticField` | `Arrows3D` |
+| `NavSatFix` | `GeoPoints` |
+| `PointCloud2` | `Points3D` |
+| `Range` | `Scalars` |
+| `RelativeHumidity` | `Scalars` |
+| `Temperature` | `Scalars` |
+
+<Note>
+`PointCloud2` renders `intensity`, `rgba`, and `label` fields when present, and supports `INT64`, `UINT64`, and `BOOL` field datatypes.
+</Note>
+
+## std\_msgs
+
+| Message | Rerun Archetype |
+|---|---|
+| `Bool` | `Scalars` |
+| `Byte` | `Scalars` |
+| `Char` | `Scalars` |
+| `Float32` | `Scalars` |
+| `Float64` | `Scalars` |
+| `Int8` | `Scalars` |
+| `Int16` | `Scalars` |
+| `Int32` | `Scalars` |
+| `Int64` | `Scalars` |
+| `String` | `TextDocument` |
+| `UInt8` | `Scalars` |
+| `UInt16` | `Scalars` |
+| `UInt32` | `Scalars` |
+| `UInt64` | `Scalars` |
+
+<Note>
+`std_msgs/String` on a topic ending in `/robot_description` is loaded as a URDF instead of a plain text document. This produces `Asset3D`, `Transform3D`, `CoordinateFrame`, and `InstancePoses3D` archetypes. See [URDF Loading](/urdf-tf/urdf) for details.
+</Note>
+
+## tf2\_msgs
+
+| Message | Rerun Archetype |
+|---|---|
+| `TFMessage` | `Transform3D` |
+
+## vision\_msgs
+
+| Message | Rerun Archetype |
+|---|---|
+| `Detection2DArray` | `Boxes2D` |
+| `Detection3DArray` | `Boxes3D` |
+
+## visualization\_msgs
+
+| Message | Rerun Archetype |
+|---|---|
+| `ImageMarker` | `Points2D`, `LineStrips2D`, `Clear` |
+| `Marker` | `Arrows3D`, `Boxes3D`, `Ellipsoids3D`, `Capsules3D`, `LineStrips3D`, `Points3D`, `Mesh3D`, `Clear` |
+| `MarkerArray` | Same as `Marker` |

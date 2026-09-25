@@ -1,0 +1,253 @@
+---
+title: "Rewire FAQ: Common Questions Answered"
+sidebarTitle: "FAQ"
+description: "Answers to frequently asked questions about installing Rewire, connecting to ROS 2 systems, visualizing robots, and troubleshooting common issues."
+---
+
+Find answers to the most common questions about setting up and using Rewire. If you don't see what you're looking for, reach out at [hello@rewire.run](mailto:hello@rewire.run).
+
+## Setup & Compatibility
+
+<AccordionGroup>
+  <Accordion title="Do I need ROS 2 installed to run Rewire?">
+    No. Rewire is a single standalone Rust binary — it has no dependency on `rclcpp`, `setup.bash`, colcon workspaces, or any ROS 2 runtime. It connects to your ROS 2 network by observing the DDS and Zenoh transports directly, without ever becoming a ROS 2 node.
+
+    The one exception is URDF mesh resolution: if your robot model references meshes with `package://` URIs, set `AMENT_PREFIX_PATH` to your ROS 2 installation's share directory before running Rewire so it can locate the mesh files. The robot skeleton (links and joints) remains visible even without this.
+  </Accordion>
+
+  <Accordion title="What ROS 2 message types are supported?">
+    Rewire ships 74 built-in type mappings across packages including `sensor_msgs`, `geometry_msgs`, `nav_msgs`, `visualization_msgs`, `tf2_msgs`, and more. See the full [Type Mappings](/supported-types) reference for the complete list.
+
+    For types not covered by the built-in mappings, you can define custom mappings in a JSON5 file without writing any code. Run `rewire types` to print the current list for your installed version.
+  </Accordion>
+
+  <Accordion title="Which ROS 2 distributions does Rewire support?">
+    Rewire supports Humble, Iron, Jazzy, Kilted, Lyrical, and Rolling. Because Rewire connects at the DDS/Zenoh level rather than through the ROS 2 client library, it is generally compatible with any distribution as long as the underlying transport is reachable.
+
+    Type resolution on pre-Jazzy distributions (Humble and Iron) requires your ROS 2 workspace to be sourced so Rewire can call `get_type_description` for custom message types. On Jazzy and later, type resolution works without sourcing.
+  </Accordion>
+
+  <Accordion title="What ROS 2 middleware does Rewire work with?">
+    Rewire supports both DDS-based middleware and Zenoh-based middleware simultaneously:
+
+    - **DDS** — CycloneDDS and FastDDS (the two most common ROS 2 middlewares)
+    - **Zenoh** — `rmw_zenoh` and `zenoh-plugin-ros2dds`
+
+    By default, Rewire starts both a DDS context and a Zenoh context at the same time. If a topic is available on both transports, Rewire subscribes via whichever one discovered it first. You can narrow this with `--transport dds` or `--transport zenoh` if you know only one is in use.
+  </Accordion>
+
+  <Accordion title="Does Rewire work with ROS 1?">
+    No. Rewire is a ROS 2 bridge and works exclusively with ROS 2 networks. ROS 1 uses a different middleware (TCPROS/UDPROS via `roscore`) that Rewire does not speak.
+
+    If you need to bridge ROS 1 data into Rerun, consider using the `ros1_bridge` package to forward topics into a ROS 2 network first, then connect Rewire to that.
+  </Accordion>
+
+  <Accordion title="Do I need to install Rerun separately?">
+    No. Rewire ships its own viewer binary, `rewire-viewer`, which is a custom Rerun-based viewer with ROS 2-specific panels (Topics, Nodes, Diagnostics). Running `rewire record` launches it automatically.
+
+    If you already have a Rerun viewer open — locally or on another machine — you can stream to it instead with the `--connect` flag:
+
+    ```bash
+    rewire record --connect 192.168.1.100:9876
+    ```
+  </Accordion>
+
+  <Accordion title="Can I run multiple Rewire instances?">
+    Yes. Multiple Rewire bridge instances can all point at the same relay simultaneously. Start a standalone relay with `rewire serve`, then connect each bridge to it:
+
+    ```bash
+    # On each robot or machine
+    rewire record --connect relay-host:9876
+    ```
+
+    The relay fans data from all connected bridges into any number of viewers. The Topics and Nodes panels in the Rewire Viewer aggregate information from every connected bridge.
+  </Accordion>
+</AccordionGroup>
+
+## Using Rewire
+
+<AccordionGroup>
+  <Accordion title="How do I check if Rewire can see my ROS 2 system?">
+    Run the health check command:
+
+    ```bash
+    rewire doctor
+    ```
+
+    This checks DDS middleware availability, Zenoh connectivity, network configuration, converter readiness, and system limits (including a warning when Linux `net.core.rmem_max` is below the receive buffer Rewire requests, which can silently drop fragmented images and point clouds under load).
+  </Accordion>
+
+  <Accordion title="Where does Rewire write its logs?">
+    Rewire writes debug-level logs to a file on disk so you can inspect them after the fact without needing to re-run with verbose output. The log file lives at:
+
+    - **Linux:** `~/.local/share/rewire/rewire.log`
+    - **macOS:** `~/Library/Application Support/rewire/rewire.log`
+
+    Console output is controlled separately by the `--log-level` flag (e.g., `--log-level debug`) or the `RUST_LOG` environment variable. The on-disk log always captures at debug level regardless of the console filter.
+  </Accordion>
+
+  <Accordion title="How do I subscribe to specific topics?">
+    Pass the `--topics` flag (short: `-t`) with a space-separated list of topic names:
+
+    ```bash
+    rewire record --topics /camera/image /scan /tf
+    ```
+
+    To subscribe to everything except certain topics, use `--exclude` with glob patterns:
+
+    ```bash
+    rewire record --exclude "/diagnostics/*" "/rosout" "/parameter_events"
+    ```
+  </Accordion>
+
+  <Accordion title="How do I connect to a remote viewer?">
+    Use the `--connect` flag with the host and port of a running Rerun viewer or Rewire relay:
+
+    ```bash
+    rewire record --connect 192.168.1.100:9876
+    ```
+
+    You can also omit the port if you're using the default (`9876`), and Rewire accepts bare hostnames as shorthand. This is useful for streaming from a robot to a workstation, or connecting to a shared `rewire serve` hub.
+  </Accordion>
+
+  <Accordion title="How do I save a recording to a file?">
+    Pass `--save` with a filename stem:
+
+    ```bash
+    rewire record --save my-recording
+    ```
+
+    Rewire completes the name as `my-recording_<recording_id>.rrd` so concurrent or successive recordings never overwrite each other. A save run also streams live — the viewer comes up so you can watch what you're capturing. Add `--no-live` for file-only output on measurement runs or machines with no display.
+  </Accordion>
+
+  <Accordion title="Can I view ROS 2 data in a web browser?">
+    Yes, in two ways:
+
+    1. **WebSocket API** — start `rewire record --ws` and connect any browser-based JavaScript client to `ws://localhost:9090`. See the [WebSocket API](/websocket-api) reference.
+
+    2. **gRPC-web relay** — `rewire serve` speaks gRPC-web and sets CORS headers, so a web build of the Rerun viewer can connect to it directly from a browser. Allow additional origins with:
+
+    ```bash
+    rewire serve --cors-allowed-origin "https://*.example.com"
+    ```
+  </Accordion>
+
+  <Accordion title="What happens if the viewer or relay crashes mid-recording?">
+    Rewire automatically reconnects. The bridge supervises its connection to the relay and reconnects on its own when the relay restarts — no manual intervention required, and the recording continues without interruption.
+
+    After reconnecting, Rewire replays latched topic data (like `/tf_static`) and static scene data (coordinate frames, URDF models) to any viewer that joins, so a restarted or late-joining viewer still gets a complete picture.
+
+    If you want a gapless record through any outage, combine `--connect` with `--save` — the local archive keeps writing even when the relay is unreachable.
+  </Accordion>
+
+  <Accordion title="How do I start a new recording without restarting Rewire?">
+    Use the `rewire log` command to rotate to a fresh recording on a running bridge instance:
+
+    ```bash
+    rewire log
+    ```
+
+    You can also specify an application ID or custom recording ID:
+
+    ```bash
+    rewire log --app my-experiment --id run-42
+    ```
+
+    If you're running `rewire record --save`, a `rewire log` swap automatically rotates to a new `.rrd` file as well.
+  </Accordion>
+
+  <Accordion title="Can I stream ROS 2 data to my own application?">
+    Yes. Enable the WebSocket server with `rewire record --ws` and connect to it from any language. The server streams all deserializable topics — not just those with registered Rerun converters — as JSON text frames by default. You can also request raw CDR binary frames or ZSTD-compressed frames per subscription for better performance.
+
+    See the [WebSocket API](/websocket-api) page for the full protocol reference including all five commands and wire format options.
+  </Accordion>
+</AccordionGroup>
+
+## URDF, TF, and Visualization
+
+<AccordionGroup>
+  <Accordion title="Are RViz markers supported?">
+    Yes. Rewire maps `visualization_msgs/Marker` and `visualization_msgs/MarkerArray` to Rerun archetypes automatically. The full set of marker types is supported, including arrows, boxes, ellipsoids, capsules, line strips, point clouds, and mesh resources. `MESH_RESOURCE` markers resolve meshes via `package://`, `file://`, and absolute paths when `AMENT_PREFIX_PATH` is set.
+  </Accordion>
+
+  <Accordion title="How do I visualize multiple robots in the same session?">
+    Publish each robot's description on a namespaced `/robot_description` topic — for example, `/robot1/robot_description` and `/robot2/robot_description`. Rewire derives a TF frame prefix from each topic's namespace, so frame names are automatically disambiguated:
+
+    | Topic | Frame prefix | Example frame |
+    |---|---|---|
+    | `/robot_description` | _(none)_ | `base_link` |
+    | `/robot1/robot_description` | `/robot1/` | `/robot1/base_link` |
+    | `/ns1/ns2/robot_description` | `/ns1/ns2/` | `/ns1/ns2/base_link` |
+
+    Each robot appears as a separate entity tree in the Rerun viewer with its own TF frames.
+  </Accordion>
+
+  <Accordion title="How do I visualize my robot's 3D model?">
+    Rewire automatically detects any topic ending in `/robot_description` and loads the URDF for 3D visualization. Typically `robot_state_publisher` publishes this. No extra configuration is needed — just run `rewire record` while `robot_state_publisher` is active.
+
+    For meshes referenced with `package://` URIs to resolve, set `AMENT_PREFIX_PATH` to your ROS 2 installation's share directory before starting Rewire:
+
+    ```bash
+    export AMENT_PREFIX_PATH=/opt/ros/humble/share
+    rewire record
+    ```
+
+    The robot skeleton remains visible even without `AMENT_PREFIX_PATH` — only the meshes are skipped.
+  </Accordion>
+
+  <Accordion title="Why is /tf empty when using robot_state_publisher?">
+    This is usually a type resolution issue. On Humble and Iron, Rewire resolves message types using `AMENT_PREFIX_PATH`. If the path isn't set, Rewire may not be able to deserialize `tf2_msgs/TFMessage` and will silently skip the topic.
+
+    First, source your ROS 2 workspace:
+
+    ```bash
+    source /opt/ros/humble/setup.bash
+    rewire record
+    ```
+
+    Then run `rewire doctor` to confirm that converter readiness passes. On Jazzy and later, type resolution works without sourcing.
+  </Accordion>
+
+  <Accordion title="Why are URDF meshes missing?">
+    URDF mesh files referenced with `package://` URIs require Rewire to know where your ROS 2 packages are installed. Set `AMENT_PREFIX_PATH` before running Rewire:
+
+    ```bash
+    export AMENT_PREFIX_PATH=/opt/ros/humble/share
+    rewire record
+    ```
+
+    If the variable is not set, Rewire logs a warning and skips mesh loading — but the robot skeleton (links and joints) is still visualized. Supported mesh formats are GLB, glTF, OBJ, STL, and DAE/COLLADA.
+  </Accordion>
+
+  <Accordion title="Why doesn't Rewire receive /robot_description or /tf_static?">
+    Both topics use transient-local (latched) QoS — publishers send each message once and expect late joiners to receive it from the publisher's cache. If Rewire joins after those messages were already published, it may only see the most recent one.
+
+    Raise the history depth Rewire keeps for latched topics with the `--latched-depth` flag:
+
+    ```bash
+    rewire record --latched-depth 20
+    ```
+
+    Or set `latched_history_depth` in your JSON5 config file. This is especially important when multiple sources publish on `/tf_static`, since each source contributes its own set of frames.
+  </Accordion>
+
+  <Accordion title="What happens with unsupported message types?">
+    Rewire logs a warning and skips the topic — it won't crash or stall. The warning identifies the topic name and type so you know exactly what was missed.
+
+    To visualize an unsupported type, create a custom mapping in a JSON5 file. Custom mappings let you define how any ROS 2 message type maps to Rerun archetypes without writing any code. Pass the file to Rewire with `--mappings`:
+
+    ```bash
+    rewire record --mappings my-mappings.json5
+    ```
+
+    You can generate a starter template for any discovered topic with `rewire mappings generate`.
+  </Accordion>
+
+  <Accordion title="What are the Rerun errors about duplicate TF frames?">
+    These errors appear when two or more sources publish TF frames with the same name. The most common cause is running multiple robots without namespaced `/robot_description` topics — each robot's URDF defines a `base_link` frame, and they collide in the viewer.
+
+    The fix is to publish each robot's description on a namespaced topic (e.g., `/robot1/robot_description`). Rewire automatically prefixes all TF frame names from that URDF with the topic namespace, so both robots can define `base_link` without conflict — they become `/robot1/base_link` and `/robot2/base_link`.
+
+    See [Multi-robot TF](/urdf-tf/transform-tree#multi-robot-tf) for the full prefix derivation rules.
+  </Accordion>
+</AccordionGroup>

@@ -1,0 +1,86 @@
+---
+title: "Diagnostics: Per-Topic Hz, Bandwidth, and Latency"
+sidebarTitle: "Diagnostics"
+description: "Enable per-topic diagnostics to monitor message rate, bandwidth, drops, and latency as Rerun Scalar time series alongside your live ROS 2 data."
+---
+
+Rewire can log per-topic diagnostics as Rerun `Scalars` entities, giving you real-time visibility into your ROS 2 data pipeline. Diagnostics are opt-in and sampled once per second.
+
+## Enable Diagnostics
+
+Turn on diagnostics with the CLI flag or in your JSON5 config file:
+
+<CodeGroup>
+```bash CLI
+rewire record --diagnostics
+```
+
+```json5 JSON5 config
+{
+    diagnostics: true,
+}
+```
+</CodeGroup>
+
+## Per-Topic Metrics
+
+Each topic logs a single `Scalars` row at `/rewire/bridge/topics/{topic}` every second, carrying four named series:
+
+| Series | Description |
+|---|---|
+| `hz` | Messages per second |
+| `bytes_per_sec` | Bandwidth in bytes per second |
+| `drops` | Total dropped messages (cumulative) |
+| `latency_ms` | Exponential moving average latency in milliseconds |
+
+A topic without a latency sample — because its clock delta was discarded, or no sample has arrived yet — logs the first three series and omits the `latency_ms` point for that interval. To isolate one series in a plot, click it in the legend to toggle it, or Alt-click to solo it.
+
+<Note>
+  Topics with a rate cap show the effective cap next to their measured Hz in the
+  viewer's Diagnostics panel. The `hz` figure itself always reflects the rate on
+  the wire, not the throttled rate that Rewire bridges.
+</Note>
+
+## Aggregate Metrics
+
+In addition to per-topic metrics, Rewire logs aggregate counters for the bridge as a whole:
+
+| Metric | Entity path |
+|---|---|
+| Active topics | `/rewire/bridge/active_topics` |
+| Subscribed topics | `/rewire/bridge/subscribed_topics` |
+| Total bytes/sec | `/rewire/bridge/total_bytes_per_sec` |
+| Total drops | `/rewire/bridge/total_drops` |
+| Total Hz | `/rewire/bridge/total_hz` |
+
+## Viewing in Rerun
+
+Diagnostics appear as scalar time series in the Rerun viewer's timeline panel. Once `--diagnostics` is enabled, you can:
+
+- Plot any metric over time to observe trends
+- Compare Hz across topics to find rate bottlenecks
+- Monitor bandwidth to detect saturation
+- Track drops to identify QoS mismatches
+
+The [Diagnostics panel](./viewer#diagnostics) in the Rewire Viewer gives you a live per-topic summary without needing to open individual time-series plots.
+
+## What Latency Measures
+
+Latency is the time between a message being published and Rewire receiving it, measured from the transport timestamp that the publishing process stamps on the wire. It does **not** read `header.stamp`, which means it stays meaningful for topics whose messages carry old stamps — for example, a recording replayed with `ros2 bag play` — and does not depend on publisher clock discipline or whether you run in sim time.
+
+<Warning>
+  Deltas beyond 60 seconds in either direction cannot represent transport
+  latency and usually indicate a host whose clock is out of sync. Rewire
+  discards those samples, and the Diagnostics panel shows `-` for the affected
+  topic.
+</Warning>
+
+## EMA Smoothing
+
+Latency uses an exponential moving average (EMA) with a smoothing factor of `0.1`:
+
+```
+latency = 0.1 × current + 0.9 × previous
+```
+
+This weights recent samples lightly relative to the running average, filtering out one-off spikes while still tracking sustained trends. A single anomalous message has minimal effect on the displayed value; a persistent change in latency will be reflected within a few seconds.

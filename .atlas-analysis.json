@@ -1,27 +1,11 @@
 {
-  "$schema": "https://mintlify.com/docs.json",
-  "name": "Rewire Docs",
+  "projectType": "cli-tool",
+  "projectName": "Rewire",
+  "projectDescription": "A drop-in ROS 2 bridge for Rerun — stream live topics to the viewer in seconds with a single Rust binary, no ROS 2 install required.",
   "theme": "luma",
-  "logo": {
-    "light": "https://media.brand.dev/856509ae-3641-411b-87f5-bace737c46ea.png",
-    "dark": "https://media.brand.dev/856509ae-3641-411b-87f5-bace737c46ea.png"
-  },
-  "favicon": "/favicon.svg",
-  "colors": {
-    "primary": "#d04400",
-    "light": "#848484",
-    "dark": "#0f0f0f"
-  },
-  "font": {
-    "headings": { "family": "Inter" },
-    "body": { "family": "Inter" }
-  },
-  "navbar": {
-    "primary": {
-      "type": "github",
-      "href": "https://github.com/rewire-run/rewire"
-    }
-  },
+  "primaryColor": "#d04400",
+  "lightColor": "#848484",
+  "darkColor": "#0f0f0f",
   "navigation": {
     "tabs": [
       {
@@ -110,5 +94,43 @@
         ]
       }
     ]
-  }
+  },
+  "keyFeatures": [
+    "Zero-install ROS 2 bridge — single static binary, no rclcpp or colcon required",
+    "Automatic topic discovery on both DDS and Zenoh transports simultaneously",
+    "Real-time streaming to the bundled Rewire Viewer (custom Rerun build with ROS 2 panels)",
+    "74 built-in ROS 2 message type mappings to Rerun archetypes",
+    "Custom JSON5 message mappings for any ROS 2 type — no code required",
+    "URDF and TF tree visualization with automatic mesh resolution",
+    "MCAP bag playback and conversion to RRD files",
+    "Per-topic diagnostics: Hz, bandwidth, drop count, and latency",
+    "WebSocket API to stream live ROS 2 data to any client",
+    "Headless relay (rewire serve) for multi-bridge and multi-viewer fleet topologies",
+    "Runtime recording control via loopback gRPC — start new recordings without restarting"
+  ],
+  "publicApiSurface": [
+    "rewire record",
+    "rewire play",
+    "rewire serve",
+    "rewire status",
+    "rewire log",
+    "rewire types",
+    "rewire doctor",
+    "rewire config",
+    "rewire config generate",
+    "rewire config path",
+    "rewire upgrade",
+    "rewire uninstall",
+    "rewire mappings generate",
+    "rewire version",
+    "rewire completions",
+    "WebSocket command: list_topics",
+    "WebSocket command: subscribe",
+    "WebSocket command: unsubscribe",
+    "WebSocket command: list_nodes",
+    "WebSocket command: watch_graph",
+    "WebSocket command: set_rate",
+    "REST endpoint: GET /topics",
+    "JSON5 config fields: app_id, transport, domain_id, discovery_timeout, queue_depth, latched_history_depth, log_level, diagnostics, output, topics, topic_overrides, ws, serve, zenoh"
+  ]
 }

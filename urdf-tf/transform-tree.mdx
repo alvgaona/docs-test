@@ -1,0 +1,49 @@
+---
+title: "Transform Tree: TF Visualization in the 3D Viewport"
+sidebarTitle: "Transform Tree"
+description: "Rewire subscribes to /tf and /tf_static and builds the full transform tree — coordinate frames, axes, and a live articulated robot model."
+---
+
+Rewire subscribes to `/tf` and `/tf_static` topics and builds the full transform tree in the Rerun viewer. Every coordinate frame in your ROS 2 system appears as a named, hierarchical frame in the 3D viewport — updating in real time as your robot moves.
+
+## What gets visualized
+
+Rewire logs two Rerun archetypes for the transform tree:
+
+- **`Transform3D`** — each transform in the tree as a 3D transformation, encoding position and orientation relative to the parent frame.
+- **`CoordinateFrame`** — frame names with axes visualization so you can identify each frame at a glance.
+
+Both static and dynamic transforms are handled automatically:
+
+- **`/tf_static`** — logged once as static data and persists across the entire timeline.
+- **`/tf`** — logged per frame, updating in real time as transforms change.
+
+<Note>
+  The `/tf_static` topic uses transient-local QoS — publishers send each frame once and expect late joiners to receive the cached sample. If several sources publish on `/tf_static`, raise the history Rewire keeps per latched topic with `--latched-depth <N>` (or `latched_history_depth` in the config file) so no frames are missed. Rewire also replays these frames after a relay reconnect and whenever a viewer joins the relay, so restarted and late-joining viewers always get a complete tree even after the relay's history cap has evicted the original messages.
+</Note>
+
+## Coordinate frames
+
+Each frame in the TF tree appears as a named coordinate frame in Rerun's 3D viewport. Frames are hierarchical — child frames are positioned relative to their parent, so the entire tree reflects your robot's kinematic structure. You can inspect any frame by selecting it in the viewer to see its full transform chain back to the root.
+
+## Combined with URDF
+
+When both TF data and a URDF model are available, Rewire stitches them together automatically for a fully articulated robot visualization:
+
+<Steps>
+  <Step title="Load the robot model">
+    Rewire receives a message on `/robot_description` and loads the full URDF robot model into the 3D viewport (see [URDF Loading](/urdf-tf/urdf) for details).
+  </Step>
+  <Step title="Attach the model to the TF tree">
+    The robot model is attached to the live TF tree using the frame IDs defined in the URDF joints, anchoring each link to its corresponding coordinate frame.
+  </Step>
+  <Step title="Animate in real time">
+    As TF transforms update on the `/tf` topic, every joint and link in the robot model moves accordingly — giving you a fully articulated, real-time robot visualization with no extra configuration.
+  </Step>
+</Steps>
+
+## Multi-robot TF
+
+When multiple robots publish on namespaced `/robot_description` topics (for example, `/robot1/robot_description` and `/robot2/robot_description`), Rewire prefixes all TF frame names from each URDF with the topic namespace. This prevents frame name collisions — both robots can define a `base_link` frame without conflict, appearing as `/robot1/base_link` and `/robot2/base_link` respectively in the viewer.
+
+See [URDF Loading — Multi-robot support](/urdf-tf/urdf#multi-robot-support) for the full prefix derivation rules.
